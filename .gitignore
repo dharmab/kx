@@ -1,4 +1,5 @@
 *.pyc
+.vagrant
 bin/*
 config/*.yaml
 vagrant/*-ignition.json

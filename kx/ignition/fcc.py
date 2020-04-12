@@ -9,6 +9,7 @@ def skeletal_fcc() -> dict:
 
 
 def _generate_universal_fcc(
+    *,
     cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
 ) -> dict:
     return kx.utility.merge_complex_dictionaries(
@@ -27,6 +28,22 @@ def _generate_universal_fcc(
 
 
 def generate_common_etcd_fcc(
+    *,
     cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
 ) -> dict:
-    return _generate_universal_fcc(cluster_configuration)
+    return _generate_universal_fcc(cluster_configuration=cluster_configuration)
+
+
+def generate_common_master_fcc(
+    *,
+    cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+) -> dict:
+    return _generate_universal_fcc(cluster_configuration=cluster_configuration)
+
+
+def generate_common_worker_fcc(
+    *,
+    cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+    pool_name: str
+) -> dict:
+    return _generate_universal_fcc(cluster_configuration=cluster_configuration)
