@@ -1,8 +1,19 @@
 #!/usr/bin/env python3
 
+import jinja2
 import kx.configuration.cluster
 import kx.configuration.project
 import kx.utility
+import yaml
+
+
+def generate_file(path: str, contents: str, mode: int = 0o644) -> dict:
+    return {
+        "path": path,
+        "contents": {"inline": contents},
+        "mode": mode,
+        "overwrite": True,
+    }
 
 
 def content_from_file(path: str) -> str:
@@ -15,6 +26,27 @@ def content_from_file(path: str) -> str:
 
 def content_from_lines(*args) -> str:
     return "\n".join(args)
+
+
+def template_content(
+    content,
+    *,
+    cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+    project_configuration: kx.configuration.project.ProjectConfiguration,
+) -> str:
+    return jinja2.Template(content).render(
+        cluster_configuration=cluster_configuration,
+        project_configuration=project_configuration,
+    )
+
+
+def kubelet_configuration() -> dict:
+    # https://kubernetes.io/docs/tasks/administer-cluster/kubelet-config-file/
+    return {
+        "apiVersion": "kubelet.config.k8s.io/v1beta1",
+        "kind": "KubeletConfiguration",
+        "staticPodPath": "/etc/kubernetes/static_pods/",
+    }
 
 
 def skeletal_fcc() -> dict:
@@ -43,22 +75,26 @@ def _generate_universal_fcc(
                     {"path": "/opt/kubernetes/bin"},
                 ],
                 "files": [
-                    {
-                        "path": "/etc/selinux/config",
-                        "contents": {
-                            "inline": content_from_lines(
-                                "SELINUX=permissive", "SELINUXTYPE=targeted"
-                            )
-                        },
-                        "overwrite": True,
-                    },
-                    {
-                        "path": "/opt/kx/bin/install_kubelet.sh",
-                        "contents": {
-                            "inline": content_from_file("scripts/install_kubelet.sh")
-                        },
-                        "mode": 0o755,
-                    },
+                    generate_file(
+                        "/etc/selinux/config",
+                        content_from_lines(
+                            "SELINUX=permissive", "SELINUXTYPE=targeted"
+                        ),
+                    ),
+                    generate_file(
+                        "/opt/kx/bin/install_kubelet.sh",
+                        template_content(
+                            content_from_file("scripts/install_kubelet.sh"),
+                            cluster_configuration=cluster_configuration,
+                            project_configuration=project_configuration,
+                        ),
+                        mode=0o700,
+                    ),
+                    generate_file(
+                        "/etc/kubernetes/kubelet.yaml",
+                        yaml.dump(kubelet_configuration()),
+                        mode=0o600,
+                    ),
                 ],
             },
             "systemd": {
@@ -67,15 +103,6 @@ def _generate_universal_fcc(
                         "name": "kubelet.service",
                         "enabled": True,
                         "contents": content_from_file("systemd/kubelet.service"),
-                        "dropins": [
-                            {
-                                "name": "kubernetes-version.conf",
-                                "contents": content_from_lines(
-                                    "[Service]",
-                                    f"Environment=KUBERNETES_VERSION={project_configuration.kubernetes_version}",
-                                ),
-                            }
-                        ],
                     }
                 ]
             },

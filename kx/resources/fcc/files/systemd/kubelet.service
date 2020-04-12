@@ -5,9 +5,14 @@ After=network.target
 
 [Service]
 Type=simple
+CPUAccounting=true
+MemoryAccounting=true
 ExecStartPre=/opt/kx/bin/install_kubelet.sh
-ExecStart=/opt/kubernetes/bin/kubelet
+ExecStart=/opt/kubernetes/bin/kubelet \
+  --config=/etc/kubernetes/kubelet.yaml
+TimeoutStartSec=infinity
 Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
