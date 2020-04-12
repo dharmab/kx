@@ -1,0 +1,5 @@
+*.pyc
+bin/*
+config/*.yaml
+vagrant/*-ignition.json
+vagrant/*.tar.gz
