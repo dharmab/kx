@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+#
+# This module contains cross-provider interfaces.
 
 import abc
 import enum
 import kx.configuration.cluster
+import kx.configuration.project
 
 
 class NodeRole(enum.Enum):
@@ -12,38 +15,84 @@ class NodeRole(enum.Enum):
 
 
 class InfrastructureProvider(abc.ABC):
+    """
+    Abstract class which must be implemented by an infrastructure provider.
+    """
+
     @abc.abstractmethod
     def prepare_provider(self) -> None:
+        """
+        This function is called prior to cluster launch and is intended for
+        infrequent setup actions, such as baking OS images and enabling cloud
+        features.
+
+        This function must be idempotent.
+        """
         pass
 
     @abc.abstractmethod
     def create_cluster(self) -> None:
+        """
+        This function is called when a cluster is initially created. It should
+        create all of the cluster's infrastructure.
+
+        This function may be non-idempotent.
+        """
         pass
 
     @abc.abstractmethod
     def delete_cluster(self) -> None:
+        """
+        This function is called when a cluster is deleted. It should
+        delete all of the cluster's infrastructure.
+
+        This function must be idempotent.
+        """
         pass
 
     @abc.abstractmethod
     def clean_provider(self) -> None:
+        """
+        This function should delete any infrastructure or files created by
+        prepare_provider() or not deleted by delete_cluster().
+
+        This function must be idempotent.
+        """
         pass
 
     @abc.abstractmethod
     def generate_etcd_fcc_overlay(
-        self, *, cluster_configuration: kx.configuration.cluster.ClusterConfiguration
+        self,
+        *,
+        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+        project_configuration: kx.configuration.project.ProjectConfiguration
     ) -> dict:
+        """
+        This function should generate any provider-specific Fedora CoreOS
+        Config (FCC) data that needs to be merged into the FCC data for etcd
+        Nodes.
+        """
         pass
 
     @abc.abstractmethod
     def generate_master_fcc_overlay(
-        self, *, cluster_configuration: kx.configuration.cluster.ClusterConfiguration
+        self,
+        *,
+        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+        project_configuration: kx.configuration.project.ProjectConfiguration
     ) -> dict:
+        """
+        This function should generate any provider-specific Fedora CoreOS
+        Config (FCC) data that needs to be merged into the FCC data for master
+        Nodes.
+        """
         pass
 
     def generate_worker_fcc_overlay(
         self,
         *,
         pool_name: str,
-        cluster_configuration: kx.configuration.cluster.ClusterConfiguration
+        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+        project_configuration: kx.configuration.project.ProjectConfiguration
     ) -> dict:
         pass

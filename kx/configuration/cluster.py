@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+#
+# This module provides user-configurable options.
 
 import dacite
 import dataclasses
@@ -8,6 +10,7 @@ import yaml
 
 @dataclasses.dataclass(frozen=True)
 class ClusterConfiguration:
+    "Struct that contains user-configurable settings"
     # Name of the infrastructure provider
     provider: typing.Literal["Vagrant"]
     # List of SSH public keys which will be authorized for the user named "core"
@@ -15,6 +18,13 @@ class ClusterConfiguration:
 
 
 def load_cluster_configuration(f: typing.IO) -> ClusterConfiguration:
+    """
+    Load the given configuration YAML or JSON file. The configuration will be
+    validated during loading. If the configurable is valid, return a
+    configuration struct. Otherwise, raises an exception.
+
+    This should only be called once, in main().
+    """
     configuration = dacite.from_dict(
         data_class=ClusterConfiguration, data=yaml.safe_load(f)
     )
@@ -23,6 +33,11 @@ def load_cluster_configuration(f: typing.IO) -> ClusterConfiguration:
 
 
 def validate_configuration(configuration: ClusterConfiguration,) -> None:
+    """
+    Check if the given configuration struct has any obvious mistakes. If the
+    configuration is valid, runs to completion. Otherwise, raises an
+    AssertError.
+    """
     validators = [validate_provider, validate_ssh_keys]
 
     for f in validators:
@@ -37,8 +52,11 @@ def validate_provider(configuration: ClusterConfiguration,) -> None:
 
 
 def validate_ssh_keys(configuration: ClusterConfiguration,) -> None:
+    # In Vagrant, a hardcoded Vagrant SSH key is available, so ssh_keys is not
+    # mandatory
     if configuration.provider != "Vagrant":
         assert configuration.ssh_keys, "ssh_keys must be defined"
+
     assert all(
         isinstance(key, str) for key in configuration.ssh_keys
     ), "ssh_keys must be a list of strings"

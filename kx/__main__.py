@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
+#
+# This is the CLI entrypoint. It parses arguments and runs the various
+# subcommands.
 
 import argparse
 import enum
 import kx.configuration.cluster
 import kx.configuration.project
 import kx.logging
-import kx.tooling.installation
+import kx.tooling
 import os
 import sys
 
@@ -13,6 +16,7 @@ logger = kx.logging.get_logger(__name__)
 
 
 class Action(enum.Enum):
+    "Enumerates the things this CLI tool can do."
     INSTALL_TOOLING = enum.auto()
     PREPARE_PROVIDER = enum.auto()
     CREATE_CLUSTER = enum.auto()
@@ -84,22 +88,22 @@ def main() -> None:
 
     if arguments.action == Action.INSTALL_TOOLING:
         logger.info(f"Installing tools...")
-        kx.tooling.installation.install_tooling()
+        kx.tooling.install_tooling(project_configuration=project_configuration)
     elif arguments.action == Action.PREPARE_PROVIDER:
         logger.info(f"Preparing {cluster_configuration.provider} provider...")
         provider.prepare_provider()
     elif arguments.action == Action.CREATE_CLUSTER:
-        logger.info("Creating {cluster_configuration.provider} cluster...")
+        logger.info(f"Creating {cluster_configuration.provider} cluster...")
         provider.create_cluster()
     elif arguments.action == Action.DELETE_CLUSTER:
-        logger.info("Deleting {cluster_configuration.provider} cluster...")
+        logger.info(f"Deleting {cluster_configuration.provider} cluster...")
         provider.delete_cluster()
     elif arguments.action == Action.CLEAN_PROVIDER:
         logger.info(f"Cleaning {cluster_configuration.provider} provider...")
         provider.clean_provider()
     elif arguments.action == Action.UNINSTALL_TOOLING:
         logger.info(f"Deleting tools...")
-        kx.tooling.installation.uninstall_tooling()
+        kx.tooling.uninstall_tooling(project_configuration=project_configuration)
     else:
         logger.error(f"{arguments.action} is not a valid command")
         sys.exit(1)

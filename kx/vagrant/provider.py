@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+#
+# The module contains the main implementation of the Vagrant infrastructure
+# provider.
 
 import io
 import json
@@ -121,7 +124,8 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
                     project_configuration=self.__project_configuration,
                 ),
                 self.generate_etcd_fcc_overlay(
-                    cluster_configuration=self.__cluster_configuration
+                    cluster_configuration=self.__cluster_configuration,
+                    project_configuration=self.__project_configuration,
                 ),
             )
         )
@@ -134,7 +138,8 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
                     project_configuration=self.__project_configuration,
                 ),
                 self.generate_master_fcc_overlay(
-                    cluster_configuration=self.__cluster_configuration
+                    cluster_configuration=self.__cluster_configuration,
+                    project_configuration=self.__project_configuration,
                 ),
             )
         )
@@ -149,6 +154,9 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
     def delete_cluster(self) -> None:
         logger.info("Destroying virtual machines...")
         kx.vagrant.commands.vagrant_destroy()
+        for ignition_path in Vagrant.box_directory_path().glob("*-ignition.json"):
+            logger.info(f"Deleting {ignition_path}...")
+            ignition_path.unlink()
 
     def clean_provider(self) -> None:
         box_directory_path = Vagrant.box_directory_path()
@@ -156,9 +164,6 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         for box_path in box_directory_path.glob("fedora-coreos*.tar.gz"):
             logger.info(f"Deleting {box_path}...")
             box_path.unlink()
-        for ignition_path in box_directory_path.glob("*-ignition.json"):
-            logger.info(f"Deleting {ignition_path}...")
-            ignition_path.unlink()
 
     def __generate_vagrant_fcc_overlay(self) -> dict:
         return {
@@ -183,18 +188,26 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         }
 
     def generate_etcd_fcc_overlay(
-        self, cluster_configuration: kx.configuration.cluster.ClusterConfiguration
+        self,
+        *,
+        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+        project_configuration: kx.configuration.project.ProjectConfiguration,
     ) -> dict:
         return self.__generate_vagrant_fcc_overlay()
 
     def generate_master_fcc_overlay(
-        self, cluster_configuration: kx.configuration.cluster.ClusterConfiguration
+        self,
+        *,
+        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+        project_configuration: kx.configuration.project.ProjectConfiguration,
     ) -> dict:
         return self.__generate_vagrant_fcc_overlay()
 
     def generate_worker_fcc_overlay(
         self,
+        *,
         pool_name: str,
         cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+        project_configuration: kx.configuration.project.ProjectConfiguration,
     ) -> dict:
         return self.__generate_vagrant_fcc_overlay()

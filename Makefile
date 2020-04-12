@@ -24,7 +24,7 @@ clean-provider:
 uninstall-tooling:
 	$(KX) uninstall-tooling
 
-lint: typecheck-python check-python-formatting check-python-style
+lint: check-python-typing check-python-formatting check-python-style
 
 format-python:
 	isort --no-sections --use-parentheses --apply --recursive $(PACKAGE)
@@ -36,5 +36,5 @@ check-python-formatting:
 check-python-style:
 	pycodestyle --ignore=E501 kx
 
-typecheck-python:
+check-python-typing:
 	mypy -p $(PACKAGE)
