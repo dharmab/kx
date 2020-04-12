@@ -46,6 +46,10 @@ def kubelet_configuration() -> dict:
         "apiVersion": "kubelet.config.k8s.io/v1beta1",
         "kind": "KubeletConfiguration",
         "staticPodPath": "/etc/kubernetes/static_pods/",
+        "authorization": {
+            # TODO use webhook mode after bootstrapping TLS PKI
+            "mode": "AlwaysAllow"
+        },
     }
 
 
@@ -73,6 +77,7 @@ def _generate_universal_fcc(
                 "directories": [
                     {"path": "/opt/kx/bin"},
                     {"path": "/opt/kubernetes/bin"},
+                    {"path": "/etc/kubernetes/tls"},
                 ],
                 "files": [
                     generate_file(
