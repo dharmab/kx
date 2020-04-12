@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
+import dacite
+import dataclasses
 import typing
 import yaml
 from kx.configuration import validation
-import dacite
-import dataclasses
 
 
 @dataclasses.dataclass(frozen=True)

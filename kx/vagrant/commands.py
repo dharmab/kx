@@ -12,7 +12,11 @@ def _run_vagrant(*args) -> None:
     try:
         subprocess.run(command, capture_output=True, check=True)
     except subprocess.CalledProcessError as e:
-        logger.error(f"Vagrant command failed: \n{command=} \n{e.stdout=} \n{e.stderr=}".replace("\\n", "\n"))
+        logger.error(
+            f"Vagrant command failed: \n{command=} \n{e.stdout=} \n{e.stderr=}".replace(
+                "\\n", "\n"
+            )
+        )
         raise
 
 

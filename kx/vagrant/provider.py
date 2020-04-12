@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 
-import kx.infrastructure
-import kx.utility
-import kx.logging
-import kx.configuration.cluster
-import kx.ignition.transpilation
-import kx.ignition.fcc
-import kx.vagrant.commands
-import pathlib
-import kx.configuration.project
-import requests
-import lzma
-import tarfile
 import io
 import json
+import kx.configuration.cluster
+import kx.configuration.project
+import kx.ignition.fcc
+import kx.ignition.transpilation
+import kx.infrastructure
+import kx.logging
+import kx.utility
+import kx.vagrant.commands
+import lzma
+import pathlib
+import requests
+import tarfile
 import time
-
 
 logger = kx.logging.get_logger(__name__)
 
@@ -108,7 +107,7 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         logger.info(f"Generating {ignition_path}...")
         if ignition_path.exists():
             ignition_path.unlink()
-        with open(ignition_path, 'w') as f:
+        with open(ignition_path, "w") as f:
             json.dump(ignition_data, f)
 
     def __generate_ignition_files(self) -> None:
@@ -125,16 +124,24 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
 
         etcd_ignition_data = kx.ignition.transpilation.transpile_ignition(
             kx.utility.merge_complex_dictionaries(
-                kx.ignition.fcc.generate_common_etcd_fcc(cluster_configuration=self.__cluster_configuration),
-                self.generate_etcd_fcc_overlay(cluster_configuration=self.__cluster_configuration),
+                kx.ignition.fcc.generate_common_etcd_fcc(
+                    cluster_configuration=self.__cluster_configuration
+                ),
+                self.generate_etcd_fcc_overlay(
+                    cluster_configuration=self.__cluster_configuration
+                ),
             )
         )
         self.__generate_ignition_file("etcd", ignition_data=etcd_ignition_data)
 
         master_ignition_data = kx.ignition.transpilation.transpile_ignition(
             kx.utility.merge_complex_dictionaries(
-                kx.ignition.fcc.generate_common_master_fcc(cluster_configuration=self.__cluster_configuration),
-                self.generate_master_fcc_overlay(cluster_configuration=self.__cluster_configuration),
+                kx.ignition.fcc.generate_common_master_fcc(
+                    cluster_configuration=self.__cluster_configuration
+                ),
+                self.generate_master_fcc_overlay(
+                    cluster_configuration=self.__cluster_configuration
+                ),
             )
         )
         self.__generate_ignition_file("master", ignition_data=master_ignition_data)
@@ -192,6 +199,8 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         return self.__generate_vagrant_fcc_overlay()
 
     def generate_worker_fcc_overlay(
-        self, pool_name: str, cluster_configuration: kx.configuration.cluster.ClusterConfiguration
+        self,
+        pool_name: str,
+        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
     ) -> dict:
         return self.__generate_vagrant_fcc_overlay()

@@ -2,13 +2,12 @@
 
 import argparse
 import enum
+import kx.configuration.cluster
+import kx.configuration.project
 import kx.logging
 import kx.tooling.installation
-import kx.configuration.project
-import kx.configuration.cluster
 import os
 import sys
-
 
 logger = kx.logging.get_logger(__name__)
 

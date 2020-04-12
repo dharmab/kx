@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
-import kx.utility
-import kx.logging
-import requests
 import dataclasses
+import kx.logging
+import kx.utility
+import requests
 import typing
-
 
 logger = kx.logging.get_logger(__name__)
 

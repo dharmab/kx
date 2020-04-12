@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import abc
-import kx.configuration.cluster
 import enum
+import kx.configuration.cluster
 
 
 class NodeRole(enum.Enum):
@@ -41,6 +41,9 @@ class InfrastructureProvider(abc.ABC):
         pass
 
     def generate_worker_fcc_overlay(
-        self, *, pool_name: str, cluster_configuration: kx.configuration.cluster.ClusterConfiguration
+        self,
+        *,
+        pool_name: str,
+        cluster_configuration: kx.configuration.cluster.ClusterConfiguration
     ) -> dict:
         pass

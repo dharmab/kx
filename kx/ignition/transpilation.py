@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import yaml
+import json
 import kx.logging
 import subprocess
-import json
+import yaml
 
 logger = kx.logging.get_logger(__name__)
 

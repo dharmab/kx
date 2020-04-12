@@ -27,6 +27,7 @@ uninstall-tooling:
 lint: typecheck-python check-python-formatting check-python-style
 
 format-python:
+	isort --no-sections --use-parentheses --apply --recursive $(PACKAGE)
 	black $(PACKAGE)
 
 check-python-formatting:
