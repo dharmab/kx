@@ -1,6 +1,5 @@
-pyyaml==5.3.1
-dacite
-requests
-isort
-black
-mypy
+PyYAML==5.3.1
+black==19.10b0
+dacite==1.4.0
+isort==4.3.21
+mypy==0.770
