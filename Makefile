@@ -12,8 +12,8 @@ install-tooling:
 prepare-provider:
 	$(KX) prepare-provider
 
-launch-cluster:
-	$(KX) launch-cluster
+create-cluster:
+	$(KX) create-cluster
 
 delete-cluster:
 	$(KX) delete-cluster

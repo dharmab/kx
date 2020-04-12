@@ -15,7 +15,7 @@ logger = kx.logging.get_logger(__name__)
 class Action(enum.Enum):
     INSTALL_TOOLING = enum.auto()
     PREPARE_PROVIDER = enum.auto()
-    LAUNCH_CLUSTER = enum.auto()
+    CREATE_CLUSTER = enum.auto()
     DELETE_CLUSTER = enum.auto()
     CLEAN_PROVIDER = enum.auto()
     UNINSTALL_TOOLING = enum.auto()
@@ -36,10 +36,10 @@ def _parse_arguments() -> argparse.Namespace:
     )
     prepare_provider_parser.set_defaults(action=Action.PREPARE_PROVIDER)
 
-    launch_cluster_parser = subparsers.add_parser(
-        "launch-cluster", help="Launch a Kubernetes cluster"
+    create_cluster_parser = subparsers.add_parser(
+        "create-cluster", help="Create a Kubernetes cluster"
     )
-    launch_cluster_parser.set_defaults(action=Action.LAUNCH_CLUSTER)
+    create_cluster_parser.set_defaults(action=Action.CREATE_CLUSTER)
 
     delete_cluster_parser = subparsers.add_parser(
         "delete-cluster", help="Delete a Kubernetes cluster"
@@ -88,17 +88,17 @@ def main() -> None:
     elif arguments.action == Action.PREPARE_PROVIDER:
         logger.info(f"Preparing {cluster_configuration.provider} provider...")
         provider.prepare_provider()
-    elif arguments.action == Action.LAUNCH_CLUSTER:
-        logger.info("Launching cluster...")
-        provider.launch_cluster()
+    elif arguments.action == Action.CREATE_CLUSTER:
+        logger.info("Creating {cluster_configuration.provider} cluster...")
+        provider.create_cluster()
     elif arguments.action == Action.DELETE_CLUSTER:
-        logger.info("Deleting cluster...")
+        logger.info("Deleting {cluster_configuration.provider} cluster...")
         provider.delete_cluster()
     elif arguments.action == Action.CLEAN_PROVIDER:
         logger.info(f"Cleaning {cluster_configuration.provider} provider...")
         provider.clean_provider()
     elif arguments.action == Action.UNINSTALL_TOOLING:
-        logger.info(f"Installing tools...")
+        logger.info(f"Deleting tools...")
         kx.tooling.installation.uninstall_tooling()
     else:
         logger.error(f"{arguments.action} is not a valid command")

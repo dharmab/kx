@@ -140,11 +140,11 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         )
         self.__generate_ignition_file("master", ignition_data=master_ignition_data)
 
-    def launch_cluster(self) -> None:
+    def create_cluster(self) -> None:
         self.__generate_ignition_files()
-        logger.info("Launching virtual machines...")
+        logger.info("Creating virtual machines...")
         kx.vagrant.commands.vagrant_up()
-        logger.info("Virtual machines launched! Use `vagrant ssh`")
+        logger.info("Virtual machines launched! Use `vagrant status` and `vagrant ssh`")
 
     def delete_cluster(self) -> None:
         logger.info("Destroying virtual machines...")

@@ -17,7 +17,7 @@ class InfrastructureProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def launch_cluster(self) -> None:
+    def create_cluster(self) -> None:
         pass
 
     @abc.abstractmethod
