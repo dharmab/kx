@@ -34,7 +34,7 @@ check-python-formatting:
 	black --check $(PACKAGE)
 
 check-python-style:
-	pycodestyle --ignore=E501,W503 kx
+	pycodestyle --ignore=E501,W503 $(PACKAGE)
 
 check-python-typing:
 	mypy -p $(PACKAGE)

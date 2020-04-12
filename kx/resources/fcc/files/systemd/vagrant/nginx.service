@@ -1,0 +1,22 @@
+[Unit]
+Description=HTTP and reverse proxy server
+Documentation=https://nginx.org/en/docs/
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+ExecStartPre=-/usr/bin/docker stop nginx
+ExecStartPre=-/usr/bin/docker rm nginx
+ExecStartPre=/usr/bin/docker pull nginx
+ExecStart=/usr/bin/docker run \
+  --name nginx \
+  --rm \
+  -v /home/vagrant/kx/vagrant:/usr/share/nginx/html:ro \
+  --network=host \
+  nginx
+TimeoutStartSec=infinity
+Restart=always
+RestartSec=0
+
+[Install]
+WantedBy=multi-user.target

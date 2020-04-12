@@ -45,16 +45,29 @@ def kubelet_configuration() -> dict:
     return {
         "apiVersion": "kubelet.config.k8s.io/v1beta1",
         "kind": "KubeletConfiguration",
+        "kubeletCgroups": "systemd",
+        "systemCgroups": "systemd",
         "staticPodPath": "/etc/kubernetes/static_pods/",
-        "authorization": {
-            # TODO use webhook mode after bootstrapping TLS PKI
-            "mode": "AlwaysAllow"
-        },
+        # TODO use webhook mode after bootstrapping TLS PKI
+        "authentication": {"anonymous": {"enabled": True}},
+        "authorization": {"mode": "AlwaysAllow"},
     }
 
 
 def skeletal_fcc() -> dict:
-    return {"variant": "fcos", "version": "1.0.0", "ignition": {}}
+    return {
+        "variant": "fcos",
+        "version": "1.0.0",
+        "storage": {
+            "files": [
+                generate_file(
+                    "/etc/selinux/config",
+                    content_from_lines("SELINUX=permissive", "SELINUXTYPE=targeted"),
+                ),
+            ]
+        },
+        "ignition": {},
+    }
 
 
 def _generate_universal_fcc(
@@ -80,12 +93,6 @@ def _generate_universal_fcc(
                     {"path": "/etc/kubernetes/tls"},
                 ],
                 "files": [
-                    generate_file(
-                        "/etc/selinux/config",
-                        content_from_lines(
-                            "SELINUX=permissive", "SELINUXTYPE=targeted"
-                        ),
-                    ),
                     generate_file(
                         "/opt/kx/bin/install_kubelet.sh",
                         template_content(
@@ -120,9 +127,21 @@ def generate_common_etcd_fcc(
     cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
     project_configuration: kx.configuration.project.ProjectConfiguration,
 ) -> dict:
-    return _generate_universal_fcc(
-        cluster_configuration=cluster_configuration,
-        project_configuration=project_configuration,
+    return kx.utility.merge_complex_dictionaries(
+        _generate_universal_fcc(
+            cluster_configuration=cluster_configuration,
+            project_configuration=project_configuration,
+        ),
+        {
+            "storage": {
+                "files": [
+                    generate_file(
+                        path="/etc/profile.d/node_role.sh",
+                        contents=content_from_lines("NODE_ROLE=etcd"),
+                    )
+                ]
+            }
+        },
     )
 
 
@@ -131,9 +150,21 @@ def generate_common_master_fcc(
     cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
     project_configuration: kx.configuration.project.ProjectConfiguration,
 ) -> dict:
-    return _generate_universal_fcc(
-        cluster_configuration=cluster_configuration,
-        project_configuration=project_configuration,
+    return kx.utility.merge_complex_dictionaries(
+        _generate_universal_fcc(
+            cluster_configuration=cluster_configuration,
+            project_configuration=project_configuration,
+        ),
+        {
+            "storage": {
+                "files": [
+                    generate_file(
+                        path="/etc/profile.d/node_role.sh",
+                        contents=content_from_lines("NODE_ROLE=master"),
+                    )
+                ]
+            }
+        },
     )
 
 

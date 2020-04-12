@@ -64,6 +64,21 @@ def standard_key_usage() -> x509.KeyUsage:
     )
 
 
+def generate_subject_name(
+    common_name: str, *, organization: str
+) -> cryptography.x509.Name:
+    return cryptography.x509.Name(
+        (
+            cryptography.x509.NameAttribute(
+                cryptography.x509.oid.NameOID.COMMON_NAME, common_name
+            ),
+            cryptography.x509.NameAttribute(
+                cryptography.x509.oid.NameOID.ORGANIZATION_NAME, organization
+            ),
+        )
+    )
+
+
 def generate_certificate_authority_certificate(
     name: x509.Name, *, signing_key: PrivateKey
 ) -> x509.Certificate:

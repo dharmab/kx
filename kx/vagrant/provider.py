@@ -117,6 +117,11 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         # Write Ignition files to disk where libvirt can see them
         logger.info("Generating Ignition data...")
 
+        storage_ignition_data = kx.ignition.transpilation.transpile_ignition(
+            self.generate_storage_fcc(),
+        )
+        self.__generate_ignition_file("storage", ignition_data=storage_ignition_data)
+
         etcd_ignition_data = kx.ignition.transpilation.transpile_ignition(
             kx.utility.merge_complex_dictionaries(
                 kx.ignition.fcc.generate_common_etcd_fcc(
@@ -186,6 +191,26 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
                 ]
             },
         }
+
+    def generate_storage_fcc(self) -> dict:
+        storage_fcc = kx.utility.merge_complex_dictionaries(
+            kx.ignition.fcc.skeletal_fcc(),
+            self.__generate_vagrant_fcc_overlay(),
+            {
+                "systemd": {
+                    "units": [
+                        {
+                            "name": "nginx.service",
+                            "enabled": True,
+                            "contents": kx.ignition.fcc.content_from_file(
+                                "systemd/vagrant/nginx.service"
+                            ),
+                        }
+                    ]
+                }
+            },
+        )
+        return storage_fcc
 
     def generate_etcd_fcc_overlay(
         self,
