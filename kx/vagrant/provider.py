@@ -114,18 +114,11 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         # Write Ignition files to disk where libvirt can see them
         logger.info("Generating Ignition data...")
 
-        # An extra jump box is needed as a utility host
-        jump_ignition_data = kx.ignition.transpilation.transpile_ignition(
-            kx.utility.merge_complex_dictionaries(
-                kx.ignition.fcc.skeletal_fcc(), self.__generate_vagrant_fcc_overlay()
-            )
-        )
-        self.__generate_ignition_file("jump", ignition_data=jump_ignition_data)
-
         etcd_ignition_data = kx.ignition.transpilation.transpile_ignition(
             kx.utility.merge_complex_dictionaries(
                 kx.ignition.fcc.generate_common_etcd_fcc(
-                    cluster_configuration=self.__cluster_configuration
+                    cluster_configuration=self.__cluster_configuration,
+                    project_configuration=self.__project_configuration,
                 ),
                 self.generate_etcd_fcc_overlay(
                     cluster_configuration=self.__cluster_configuration
@@ -137,7 +130,8 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         master_ignition_data = kx.ignition.transpilation.transpile_ignition(
             kx.utility.merge_complex_dictionaries(
                 kx.ignition.fcc.generate_common_master_fcc(
-                    cluster_configuration=self.__cluster_configuration
+                    cluster_configuration=self.__cluster_configuration,
+                    project_configuration=self.__project_configuration,
                 ),
                 self.generate_master_fcc_overlay(
                     cluster_configuration=self.__cluster_configuration

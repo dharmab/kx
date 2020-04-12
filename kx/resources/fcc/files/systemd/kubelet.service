@@ -1,0 +1,13 @@
+[Unit]
+Description=Kubernetes Kubelet
+Documentation=https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/
+After=network.target
+
+[Service]
+Type=simple
+ExecStartPre=/opt/kx/bin/install_kubelet.sh
+ExecStart=/opt/kubernetes/bin/kubelet
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
