@@ -8,7 +8,7 @@ import dataclasses
 
 
 @dataclasses.dataclass(frozen=True)
-class ClusterConfiguration():
+class ClusterConfiguration:
     # Name of the infrastructure provider
     provider: typing.Literal["Vagrant"]
     # List of SSH public keys which will be authorized for the user named "core"
@@ -16,6 +16,8 @@ class ClusterConfiguration():
 
 
 def load_cluster_configuration(f: typing.IO) -> ClusterConfiguration:
-    configuration = dacite.from_dict(data_class=ClusterConfiguration, data=yaml.safe_load(f))
+    configuration = dacite.from_dict(
+        data_class=ClusterConfiguration, data=yaml.safe_load(f)
+    )
     validation.validate_configuration(configuration)
     return configuration

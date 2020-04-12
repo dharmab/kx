@@ -1,4 +1,6 @@
 ---
 provider: Vagrant
-ssh_keys:
-  - "ssh-rsa ..."
+# A list of SSH keys which are authorized to authenticate as the user named
+# "core". Note that the user named "vagrant" has the insecure Vagrant public
+# key hardcoded, so there is no need to include it here.
+ssh_keys: []

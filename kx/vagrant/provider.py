@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from kx import infrastructure
-from kx import utility
-from kx import log
+import kx.infrastructure
+import kx.utility
+import kx.logging
 import kx.configuration.cluster
 import kx.ignition.transpilation
 import kx.ignition.fcc
@@ -16,7 +16,7 @@ import json
 import time
 
 
-logger = log.get_logger(__name__)
+logger = kx.logging.get_logger(__name__)
 
 # https://github.com/vagrant-libvirt/vagrant-libvirt/blob/master/example_box/Vagrantfile
 LIBVIRT_VAGRANTFILE = """
@@ -31,14 +31,19 @@ end
 """
 
 
-class Vagrant(infrastructure.InfrastructureProvider):
-    def __init__(self, *, project_configuration: kx.configuration.project.ProjectConfiguration, cluster_configuration: kx.configuration.cluster.ClusterConfiguration):
+class Vagrant(kx.infrastructure.InfrastructureProvider):
+    def __init__(
+        self,
+        *,
+        project_configuration: kx.configuration.project.ProjectConfiguration,
+        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+    ):
         self.__project_configuration = project_configuration
         self.__cluster_configuration = cluster_configuration
 
     @staticmethod
     def box_directory_path() -> pathlib.Path:
-        return utility.project_directory().joinpath("vagrant/")
+        return kx.utility.project_directory().joinpath("vagrant/")
 
     def prepare_provider(self) -> None:
         # Preparation: We need to create a vagrant-libvirtd Fedora CoreOS box
@@ -46,11 +51,15 @@ class Vagrant(infrastructure.InfrastructureProvider):
         # Create directory for Vagrant Box
         box_directory_path = Vagrant.box_directory_path()
         if not box_directory_path.exists():
-            logger.info(f"Creating directory {box_directory_path} to store Vagrant box...")
+            logger.info(
+                f"Creating directory {box_directory_path} to store Vagrant box..."
+            )
             box_directory_path.mkdir(parents=True)
         assert box_directory_path.is_dir()
 
-        box_file_path = box_directory_path.joinpath(f"fedora-coreos-{self.__project_configuration.operating_system_version}.tar.gz")
+        box_file_path = box_directory_path.joinpath(
+            f"fedora-coreos-{self.__project_configuration.operating_system_version}.tar.gz"
+        )
         if not box_file_path.exists():
             # Download the Fedora CoreOS QEMU image
             download_url = f"https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/{self.__project_configuration.operating_system_version}/x86_64/fedora-coreos-{self.__project_configuration.operating_system_version}-qemu.x86_64.qcow2.xz"
@@ -65,6 +74,7 @@ class Vagrant(infrastructure.InfrastructureProvider):
             # https://github.com/vagrant-libvirt/vagrant-libvirt#box-format
             logger.info(f"Packaging {box_file_path}...")
             with tarfile.open(name=box_file_path, mode="w:gz") as a:
+
                 def add_file_to_tarball(name: str, data: bytes):
                     info = tarfile.TarInfo(name)
                     info.size = len(data)
@@ -96,24 +106,27 @@ class Vagrant(infrastructure.InfrastructureProvider):
         # Write Ignition files to disk where libvirt can see them
         jump_ignition_path = Vagrant.box_directory_path().joinpath("jump-ignition.json")
         logger.info(f"Generating {jump_ignition_path}")
-        jump_ignition = kx.ignition.transpilation.transpile_ignition(utility.merge_complex_dictionaries(
-            kx.ignition.fcc.skeletal_fcc(),
-            self.__generate_vagrant_fcc_overlay()
-        ))
-        with open(jump_ignition_path, 'w') as f:
+        jump_ignition = kx.ignition.transpilation.transpile_ignition(
+            kx.utility.merge_complex_dictionaries(
+                kx.ignition.fcc.skeletal_fcc(), self.__generate_vagrant_fcc_overlay()
+            )
+        )
+        jump_ignition_path.unlink()
+        with open(jump_ignition_path, "w") as f:
             json.dump(jump_ignition, f)
-        jump_ignition_path.chmod(0o600)
 
-        etcd_ignition = kx.ignition.transpilation.transpile_ignition(utility.merge_complex_dictionaries(
-            kx.ignition.fcc.generate_common_etcd_fcc(self.__cluster_configuration),
-            self.generate_etcd_fcc_overlay(self.__cluster_configuration)
-        ))
+        etcd_ignition = kx.ignition.transpilation.transpile_ignition(
+            kx.utility.merge_complex_dictionaries(
+                kx.ignition.fcc.generate_common_etcd_fcc(self.__cluster_configuration),
+                self.generate_etcd_fcc_overlay(self.__cluster_configuration),
+            )
+        )
 
         etcd_ignition_path = Vagrant.box_directory_path().joinpath("etcd-ignition.json")
         logger.info(f"Generating {etcd_ignition_path}")
-        with open(etcd_ignition_path, 'w') as f:
+        etcd_ignition_path.unlink()
+        with open(etcd_ignition_path, "w") as f:
             json.dump(etcd_ignition, f)
-        etcd_ignition_path.chmod(0o600)
 
     def delete_cluster(self) -> None:
         raise NotImplementedError
@@ -131,24 +144,26 @@ class Vagrant(infrastructure.InfrastructureProvider):
     def __generate_vagrant_fcc_overlay(self) -> dict:
         return {
             "passwd": {
-                "users": [{
-                    "name": "vagrant",
-                    "ssh_authorized_keys": [
-                        "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
-                    ]
-                }]
-            },
-            'storage': {
-                'files': [
+                "users": [
                     {
-                        "path": '/etc/sudoers.d/vagrant',
-                        "contents": {
-                            "inline": "vagrant ALL=(ALL) NOPASSWD: ALL"
-                        }
+                        "name": "vagrant",
+                        "ssh_authorized_keys": [
+                            "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
+                        ],
                     }
                 ]
-            }
+            },
+            "storage": {
+                "files": [
+                    {
+                        "path": "/etc/sudoers.d/vagrant",
+                        "contents": {"inline": "vagrant ALL=(ALL) NOPASSWD: ALL"},
+                    }
+                ]
+            },
         }
 
-    def generate_etcd_fcc_overlay(self, cluster_configuration: kx.configuration.cluster.ClusterConfiguration) -> dict:
+    def generate_etcd_fcc_overlay(
+        self, cluster_configuration: kx.configuration.cluster.ClusterConfiguration
+    ) -> dict:
         return self.__generate_vagrant_fcc_overlay()

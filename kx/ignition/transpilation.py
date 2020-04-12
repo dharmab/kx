@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 
 import yaml
-import kx.log
+import kx.logging
 import subprocess
 import json
 
-logger = kx.log.get_logger(__name__)
+logger = kx.logging.get_logger(__name__)
 
 
 def transpile_ignition(fcc: dict) -> dict:
     try:
         fcct_process = subprocess.run(
-            ["fcct", '--pretty', '--strict'],
+            ["fcct", "--pretty", "--strict"],
             text=True,
             input=yaml.dump(fcc),
             capture_output=True,
-            check=True
+            check=True,
         )
     except subprocess.CalledProcessError as e:
         logger.error(f"fcct process failed: {e.stderr}")

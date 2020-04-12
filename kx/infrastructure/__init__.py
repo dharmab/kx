@@ -22,5 +22,7 @@ class InfrastructureProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def generate_etcd_fcc_overlay(self, *, cluster_configuration: kx.configuration.cluster.ClusterConfiguration) -> dict:
+    def generate_etcd_fcc_overlay(
+        self, *, cluster_configuration: kx.configuration.cluster.ClusterConfiguration
+    ) -> dict:
         pass

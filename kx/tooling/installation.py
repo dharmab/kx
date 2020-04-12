@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import kx.utility
-import kx.log
+import kx.logging
 import requests
 import dataclasses
 import typing
 
 
-logger = kx.log.get_logger(__name__)
+logger = kx.logging.get_logger(__name__)
 
 
 @dataclasses.dataclass()
@@ -21,7 +21,10 @@ class Tool:
 
 def _tools_registry() -> typing.Tuple[Tool, ...]:
     return (
-        Tool(filename="fcct", download_url="https://github.com/coreos/fcct/releases/download/v0.5.0/fcct-x86_64-unknown-linux-gnu"),
+        Tool(
+            filename="fcct",
+            download_url="https://github.com/coreos/fcct/releases/download/v0.5.0/fcct-x86_64-unknown-linux-gnu",
+        ),
     )
 
 

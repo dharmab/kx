@@ -1,24 +1,39 @@
 .PHONY: default prepare-provider clean-provider
 
-PYTHON_COMMAND=python -m kx
+KX=python -m kx
+PACKAGE=kx
 
 default:
 		@echo 🏴‍☠️
 
 install-tooling:
-		$(PYTHON_COMMAND) install-tooling
+	$(KX) install-tooling
 
 prepare-provider:
-		$(PYTHON_COMMAND) prepare-provider
+	$(KX) prepare-provider
 
 launch-cluster:
-		$(PYTHON_COMMAND) launch-cluster
+	$(KX) launch-cluster
 
 delete-cluster:
-		$(PYTHON_COMMAND) delete-cluster
+	$(KX) delete-cluster
 
 clean-provider:
-		$(PYTHON_COMMAND) clean-provider
+	$(KX) clean-provider
 
 uninstall-tooling:
-		$(PYTHON_COMMAND) uninstall-tooling
+	$(KX) uninstall-tooling
+
+lint: typecheck-python check-python-formatting check-python-style
+
+format-python:
+	black $(PACKAGE)
+
+check-python-formatting:
+	black --check $(PACKAGE)
+
+check-python-style:
+	pycodestyle --ignore=E501 kx
+
+typecheck-python:
+	mypy -p $(PACKAGE)
