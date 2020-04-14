@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+#
+# This module contains functions and types
 
 import cryptography.x509
 import dataclasses
@@ -22,15 +24,6 @@ class KubernetesPublicKeyInfrastructure:
     controller_manager_keypair: Keypair
     scheduler_keypair: Keypair
     encryption_key: str
-
-
-@dataclasses.dataclass
-class EtcdPublicKeyInfrastructure:
-    certificate_authority: Keypair
-    etcd_server_keypair: Keypair
-    etcd_peer_keypair: Keypair
-    etcd_apiserver_client_keypair: Keypair
-    etcd_metrics_client_keypair: Keypair
 
 
 def create_kubernetes_pki(
@@ -113,3 +106,101 @@ def create_kubernetes_pki(
         ),
         encryption_key=encryption_key,
     )
+
+
+@dataclasses.dataclass
+class EtcdPublicKeyInfrastructure:
+    certificate_authority: Keypair
+    etcd_server_keypair: Keypair
+    etcd_peer_keypair: Keypair
+    etcd_apiserver_client_keypair: Keypair
+    encryption_key: str
+
+
+def create_etcd_pki(
+    *,
+    etcd_peer_ip_addresses: typing.List[
+        typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
+    ],
+    etcd_server_ip_addresses: typing.List[
+        typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
+    ],
+    encryption_key: str
+) -> EtcdPublicKeyInfrastructure:
+    certificate_authority_name = kx.tls.crypto.generate_subject_name(
+        "etcd", organization="kx"
+    )
+    signing_key = kx.tls.crypto.generate_private_key()
+    certificate_authority = kx.tls.crypto.Keypair(
+        private_key=signing_key,
+        public_key=kx.tls.crypto.generate_certificate_authority_certificate(
+            certificate_authority_name, signing_key=signing_key
+        ),
+    )
+
+    etcd_peer_keypair = kx.tls.crypto.generate_keypair(
+        kx.tls.crypto.generate_subject_name("etcd-peer", organization="etcd-peers"),
+        subject_alternative_name=cryptography.x509.SubjectAlternativeName(
+            [cryptography.x509.IPAddress(ip) for ip in etcd_peer_ip_addresses]
+        ),
+        key_usage=kx.tls.crypto.standard_key_usage(),
+        certificate_authority_keypair=certificate_authority,
+    )
+
+    etcd_server_keypair = kx.tls.crypto.generate_keypair(
+        kx.tls.crypto.generate_subject_name("etcd", organization="etcd-servers"),
+        subject_alternative_name=cryptography.x509.SubjectAlternativeName(
+            [
+                cryptography.x509.IPAddress(ip)
+                for ip in etcd_server_ip_addresses
+                + [ipaddress.IPv4Address("127.0.0.1")]
+            ]
+        ),
+        key_usage=kx.tls.crypto.standard_key_usage(),
+        certificate_authority_keypair=certificate_authority,
+    )
+
+    apiserver_keypair = kx.tls.crypto.generate_keypair(
+        kx.tls.crypto.generate_subject_name(
+            "kube-apiserver", organization="etcd-rw-clients"
+        ),
+        subject_alternative_name=None,
+        key_usage=kx.tls.crypto.standard_key_usage(),
+        certificate_authority_keypair=certificate_authority,
+    )
+
+    return EtcdPublicKeyInfrastructure(
+        certificate_authority=kx.tls.crypto.serialize_keypair(
+            certificate_authority, encryption_key=encryption_key
+        ),
+        etcd_peer_keypair=kx.tls.crypto.serialize_keypair(
+            etcd_peer_keypair, encryption_key=encryption_key
+        ),
+        etcd_server_keypair=kx.tls.crypto.serialize_keypair(
+            etcd_server_keypair, encryption_key=encryption_key
+        ),
+        etcd_apiserver_client_keypair=kx.tls.crypto.serialize_keypair(
+            apiserver_keypair, encryption_key=encryption_key
+        ),
+        encryption_key=encryption_key,
+    )
+
+
+@dataclasses.dataclass
+class PublicKeyInfrastructureCatalog:
+    kubernetes_signing_key: yarl.URL
+    kubernetes_certificate_authority: yarl.URL
+    apiserver_certificate: yarl.URL
+    apiserver_private_key: yarl.URL
+    controller_manager_certificate: yarl.URL
+    controller_manager_private_key: yarl.URL
+    scheduler_certificate: yarl.URL
+    scheduler_private_key: yarl.URL
+    etcd_certificate_authority: yarl.URL
+    etcd_peer_certificate: yarl.URL
+    etcd_peer_private_key: yarl.URL
+    etcd_server_certificate: yarl.URL
+    etcd_server_private_key: yarl.URL
+    etcd_apiserver_client_certificate: yarl.URL
+    etcd_apiserver_client_private_key: yarl.URL
+    encryption_key: str

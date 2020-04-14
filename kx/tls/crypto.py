@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 #
-# Provides functions for managing Public Key Infrastructure (PKI) within a
-# Kubernetes cluster
+# This module contains cryptographic utility functions. The goal of this module
+# is to isolate the so-called "hazmat" modules from the rest of the codebase.
+#
+# Note that this module requires you to really fucking know what you're doing.
+# A working knowledge of modern cryptography is required.
 
 import cryptography.hazmat.backends as crypto_backends
 import cryptography.hazmat.primitives.asymmetric.ec as ellipic_curve
@@ -9,7 +12,7 @@ import cryptography.hazmat.primitives.hashes
 import cryptography.x509 as x509
 import dataclasses
 import datetime
-import kx.tls.public
+import kx.tls.pki
 import secrets
 import typing
 
@@ -193,7 +196,7 @@ def generate_keypair(
 
 def serialize_keypair(
     keypair: Keypair, encryption_key: typing.Optional[str]
-) -> kx.tls.public.Keypair:
+) -> kx.tls.pki.Keypair:
     encryption_algorithm: cryptography.hazmat.primitives.serialization.KeySerializationEncryption
     if encryption_key is not None:
         encryption_algorithm = cryptography.hazmat.primitives.serialization.BestAvailableEncryption(
@@ -204,7 +207,7 @@ def serialize_keypair(
             cryptography.hazmat.primitives.serialization.NoEncryption()
         )
 
-    return kx.tls.public.Keypair(
+    return kx.tls.pki.Keypair(
         private_key=keypair.private_key.private_bytes(
             encoding=cryptography.hazmat.primitives.serialization.Encoding.PEM,
             format=cryptography.hazmat.primitives.serialization.PrivateFormat.TraditionalOpenSSL,

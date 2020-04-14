@@ -4,6 +4,7 @@
 # provider.
 
 import io
+import ipaddress
 import json
 import kx.configuration.cluster
 import kx.configuration.project
@@ -17,6 +18,8 @@ import lzma
 import requests
 import tarfile
 import time
+import typing
+import yarl
 
 logger = kx.logging.get_logger(__name__)
 
@@ -152,7 +155,9 @@ class Vagrant(
             "worker",
             ignition_data=kx.ignition.transpilation.transpile_ignition(
                 kx.utility.merge_complex_dictionaries(
-                    universal_ignition.generate_worker_configuration(pool_name="worker"),
+                    universal_ignition.generate_worker_configuration(
+                        pool_name="worker"
+                    ),
                     self.generate_worker_configuration(pool_name="worker"),
                 )
             ),
@@ -173,6 +178,39 @@ class Vagrant(
         for file_path in ignition_directory_path.glob("*-ignition.json"):
             logger.info(f"Deleting {file_path}...")
             file_path.unlink()
+
+    def query_etcd_peer_names(
+        self,
+    ) -> typing.List[typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
+        # IP addresses are hardcoded in Vagrantfile
+        return [
+            ipaddress.IPv4Address(ip)
+            for ip in ("10.13.13.2", "10.13.13.3", "10.13.13.4")
+        ]
+
+    def query_etcd_server_names(
+        self,
+    ) -> typing.List[typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
+        return self.query_etcd_peer_names() + [ipaddress.IPv4Address("10.13.13.5")]
+
+    def query_apiserver_names(
+        self,
+    ) -> typing.List[
+        typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address, yarl.URL]
+    ]:
+        # IP addresses are hardcoded in Vagrantfile
+        return [
+            ipaddress.IPv4Address(ip)
+            for ip in ("10.13.13.5", "10.13.13.6", "10.13.13.7", "10.13.13.8")
+        ]
+
+    def upload_tls_certificates(
+        self,
+        *,
+        etcd_pki: kx.tls.pki.EtcdPublicKeyInfrastructure,
+        kubernetes_pki: kx.tls.pki.KubernetesPublicKeyInfrastructure,
+    ) -> kx.tls.pki.PublicKeyInfrastructureCatalog:
+        raise NotImplementedError
 
     def clean_provider(self) -> None:
         box_directory_path = kx.utility.project_directory().joinpath("vagrant/boxes")
