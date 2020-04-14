@@ -9,6 +9,7 @@ import cryptography.hazmat.primitives.hashes
 import cryptography.x509 as x509
 import dataclasses
 import datetime
+import kx.tls.public
 import secrets
 import typing
 
@@ -187,4 +188,29 @@ def generate_keypair(
             algorithm=standard_hash_algorithm(),
             backend=crypto_backends.default_backend(),
         ),
+    )
+
+
+def serialize_keypair(
+    keypair: Keypair, encryption_key: typing.Optional[str]
+) -> kx.tls.public.Keypair:
+    encryption_algorithm: cryptography.hazmat.primitives.serialization.KeySerializationEncryption
+    if encryption_key is not None:
+        encryption_algorithm = cryptography.hazmat.primitives.serialization.BestAvailableEncryption(
+            encryption_key.encode()
+        )
+    else:
+        encryption_algorithm = (
+            cryptography.hazmat.primitives.serialization.NoEncryption()
+        )
+
+    return kx.tls.public.Keypair(
+        private_key=keypair.private_key.private_bytes(
+            encoding=cryptography.hazmat.primitives.serialization.Encoding.PEM,
+            format=cryptography.hazmat.primitives.serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=encryption_algorithm,
+        ).decode(),
+        public_key=keypair.public_key.public_bytes(
+            cryptography.hazmat.primitives.serialization.Encoding.PEM
+        ).decode(),
     )

@@ -39,6 +39,7 @@ def create_kubernetes_pki(
         typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address, yarl.URL]
     ],
     cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+    encryption_key: str
 ) -> KubernetesPublicKeyInfrastructure:
     certificate_authority_name = kx.tls.crypto.generate_subject_name(
         "kx", organization="kx"
@@ -80,7 +81,7 @@ def create_kubernetes_pki(
         certificate_authority_keypair=certificate_authority,
     )
     # https://kubernetes.io/docs/reference/access-authn-authz/rbac/#core-component-roles
-    controller_manager = kx.tls.crypto.generate_keypair(
+    controller_manager_keypair = kx.tls.crypto.generate_keypair(
         kx.tls.crypto.generate_subject_name(
             "kube-scheduler", organization="system:kube-scheduler"
         ),
@@ -94,5 +95,21 @@ def create_kubernetes_pki(
         ),
         subject_alternative_name=apiserver_alternative_name,
         key_usage=kx.tls.crypto.standard_key_usage(),
-        certificate_authority=certificate_authority,
+        certificate_authority_keypair=certificate_authority,
+    )
+
+    return KubernetesPublicKeyInfrastructure(
+        certificate_authority=kx.tls.crypto.serialize_keypair(
+            certificate_authority, encryption_key=encryption_key
+        ),
+        apiserver_keypair=kx.tls.crypto.serialize_keypair(
+            apiserver_keypair, encryption_key=encryption_key
+        ),
+        scheduler_keypair=kx.tls.crypto.serialize_keypair(
+            scheduler_keypair, encryption_key=encryption_key
+        ),
+        controller_manager_keypair=kx.tls.crypto.serialize_keypair(
+            controller_manager_keypair, encryption_key=encryption_key
+        ),
+        encryption_key=encryption_key,
     )
