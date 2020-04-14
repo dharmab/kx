@@ -12,17 +12,11 @@ import yarl
 
 
 @dataclasses.dataclass
-class Keypair:
-    public_key: str
-    private_key: str
-
-
-@dataclasses.dataclass
 class KubernetesPublicKeyInfrastructure:
-    certificate_authority: Keypair
-    apiserver_keypair: Keypair
-    controller_manager_keypair: Keypair
-    scheduler_keypair: Keypair
+    certificate_authority: kx.tls.crypto.SerializedKeypair
+    apiserver_keypair: kx.tls.crypto.SerializedKeypair
+    controller_manager_keypair: kx.tls.crypto.SerializedKeypair
+    scheduler_keypair: kx.tls.crypto.SerializedKeypair
     encryption_key: str
 
 
@@ -110,10 +104,10 @@ def create_kubernetes_pki(
 
 @dataclasses.dataclass
 class EtcdPublicKeyInfrastructure:
-    certificate_authority: Keypair
-    etcd_server_keypair: Keypair
-    etcd_peer_keypair: Keypair
-    etcd_apiserver_client_keypair: Keypair
+    certificate_authority: kx.tls.crypto.SerializedKeypair
+    etcd_server_keypair: kx.tls.crypto.SerializedKeypair
+    etcd_peer_keypair: kx.tls.crypto.SerializedKeypair
+    etcd_apiserver_client_keypair: kx.tls.crypto.SerializedKeypair
     encryption_key: str
 
 

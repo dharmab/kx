@@ -25,6 +25,12 @@ class Keypair:
     public_key: x509.Certificate
 
 
+@dataclasses.dataclass
+class SerializedKeypair:
+    public_key: str
+    private_key: str
+
+
 def standard_hash_algorithm() -> cryptography.hazmat.primitives.hashes.HashAlgorithm:
     return cryptography.hazmat.primitives.hashes.SHA256()
 
@@ -196,7 +202,7 @@ def generate_keypair(
 
 def serialize_keypair(
     keypair: Keypair, encryption_key: typing.Optional[str]
-) -> kx.tls.pki.Keypair:
+) -> SerializedKeypair:
     encryption_algorithm: cryptography.hazmat.primitives.serialization.KeySerializationEncryption
     if encryption_key is not None:
         encryption_algorithm = cryptography.hazmat.primitives.serialization.BestAvailableEncryption(
@@ -207,7 +213,7 @@ def serialize_keypair(
             cryptography.hazmat.primitives.serialization.NoEncryption()
         )
 
-    return kx.tls.pki.Keypair(
+    return SerializedKeypair(
         private_key=keypair.private_key.private_bytes(
             encoding=cryptography.hazmat.primitives.serialization.Encoding.PEM,
             format=cryptography.hazmat.primitives.serialization.PrivateFormat.TraditionalOpenSSL,
