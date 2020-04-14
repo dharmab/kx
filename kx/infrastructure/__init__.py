@@ -4,8 +4,6 @@
 
 import abc
 import enum
-import kx.configuration.cluster
-import kx.configuration.project
 
 
 class NodeRole(enum.Enum):
@@ -58,41 +56,4 @@ class InfrastructureProvider(abc.ABC):
 
         This function must be idempotent.
         """
-        pass
-
-    @abc.abstractmethod
-    def generate_etcd_fcc_overlay(
-        self,
-        *,
-        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
-        project_configuration: kx.configuration.project.ProjectConfiguration
-    ) -> dict:
-        """
-        This function should generate any provider-specific Fedora CoreOS
-        Config (FCC) data that needs to be merged into the FCC data for etcd
-        Nodes.
-        """
-        pass
-
-    @abc.abstractmethod
-    def generate_master_fcc_overlay(
-        self,
-        *,
-        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
-        project_configuration: kx.configuration.project.ProjectConfiguration
-    ) -> dict:
-        """
-        This function should generate any provider-specific Fedora CoreOS
-        Config (FCC) data that needs to be merged into the FCC data for master
-        Nodes.
-        """
-        pass
-
-    def generate_worker_fcc_overlay(
-        self,
-        *,
-        pool_name: str,
-        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
-        project_configuration: kx.configuration.project.ProjectConfiguration
-    ) -> dict:
         pass

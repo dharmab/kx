@@ -14,7 +14,6 @@ import kx.logging
 import kx.utility
 import kx.vagrant.commands
 import lzma
-import pathlib
 import requests
 import tarfile
 import time
@@ -34,7 +33,10 @@ end
 """
 
 
-class Vagrant(kx.infrastructure.InfrastructureProvider):
+class Vagrant(
+    kx.infrastructure.InfrastructureProvider,
+    kx.ignition.fcc.FedoraCoreOSConfigurationProvider,
+):
     def __init__(
         self,
         *,
@@ -44,19 +46,12 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         self.__project_configuration = project_configuration
         self.__cluster_configuration = cluster_configuration
 
-    @staticmethod
-    def box_directory_path() -> pathlib.Path:
-        return kx.utility.project_directory().joinpath("vagrant/")
-
     def prepare_provider(self) -> None:
         # Preparation: We need to create a vagrant-libvirtd Fedora CoreOS box
 
         # Create directory for Vagrant Box
-        box_directory_path = Vagrant.box_directory_path()
+        box_directory_path = kx.utility.project_directory().joinpath("vagrant/boxes")
         if not box_directory_path.exists():
-            logger.info(
-                f"Creating directory {box_directory_path} to store Vagrant box..."
-            )
             box_directory_path.mkdir(parents=True)
         assert box_directory_path.is_dir()
 
@@ -96,8 +91,10 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
                 add_file_to_tarball("metadata.json", str.encode(json.dumps(metadata)))
 
                 add_file_to_tarball("Vagrantfile", str.encode(LIBVIRT_VAGRANTFILE))
-        box_symlink_path = box_directory_path.joinpath("fedora-coreos.tar.gz")
 
+        # Create a stable symlink to the box so we don't have to update the
+        # box URL in the project's Vagrantfile
+        box_symlink_path = box_directory_path.joinpath("fedora-coreos.tar.gz")
         logger.info(f"Updating symbolic link {box_symlink_path}...")
         if box_symlink_path.exists():
             box_symlink_path.unlink()
@@ -106,7 +103,9 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         logger.info("Vagrant ready to launch!")
 
     def __generate_ignition_file(self, role: str, *, ignition_data: dict) -> None:
-        ignition_path = Vagrant.box_directory_path().joinpath(f"{role}-ignition.json")
+        ignition_path = kx.utility.project_directory().joinpath(
+            f"vagrant/ignition/{role}-ignition.json"
+        )
         logger.info(f"Generating {ignition_path}...")
         if ignition_path.exists():
             ignition_path.unlink()
@@ -117,38 +116,47 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         # Write Ignition files to disk where libvirt can see them
         logger.info("Generating Ignition data...")
 
-        storage_ignition_data = kx.ignition.transpilation.transpile_ignition(
-            self.generate_storage_fcc(),
+        ignition_directory_path = kx.utility.project_directory().joinpath(
+            f"vagrant/ignition/"
         )
-        self.__generate_ignition_file("storage", ignition_data=storage_ignition_data)
+        if not ignition_directory_path.exists():
+            ignition_directory_path.mkdir(parents=True)
+        assert ignition_directory_path.is_dir()
 
-        etcd_ignition_data = kx.ignition.transpilation.transpile_ignition(
-            kx.utility.merge_complex_dictionaries(
-                kx.ignition.fcc.generate_common_etcd_fcc(
-                    cluster_configuration=self.__cluster_configuration,
-                    project_configuration=self.__project_configuration,
-                ),
-                self.generate_etcd_fcc_overlay(
-                    cluster_configuration=self.__cluster_configuration,
-                    project_configuration=self.__project_configuration,
-                ),
-            )
+        universal_ignition = kx.ignition.fcc.UniversalFCCProvider(
+            cluster_configuration=self.__cluster_configuration,
+            project_configuration=self.__project_configuration,
         )
-        self.__generate_ignition_file("etcd", ignition_data=etcd_ignition_data)
 
-        master_ignition_data = kx.ignition.transpilation.transpile_ignition(
-            kx.utility.merge_complex_dictionaries(
-                kx.ignition.fcc.generate_common_master_fcc(
-                    cluster_configuration=self.__cluster_configuration,
-                    project_configuration=self.__project_configuration,
-                ),
-                self.generate_master_fcc_overlay(
-                    cluster_configuration=self.__cluster_configuration,
-                    project_configuration=self.__project_configuration,
-                ),
-            )
+        self.__generate_ignition_file(
+            "etcd",
+            ignition_data=kx.ignition.transpilation.transpile_ignition(
+                kx.utility.merge_complex_dictionaries(
+                    universal_ignition.generate_etcd_configuration(),
+                    self.generate_etcd_configuration(),
+                )
+            ),
         )
-        self.__generate_ignition_file("master", ignition_data=master_ignition_data)
+
+        self.__generate_ignition_file(
+            "master",
+            ignition_data=kx.ignition.transpilation.transpile_ignition(
+                kx.utility.merge_complex_dictionaries(
+                    universal_ignition.generate_master_configuration(),
+                    self.generate_master_configuration(),
+                )
+            ),
+        )
+
+        self.__generate_ignition_file(
+            "worker",
+            ignition_data=kx.ignition.transpilation.transpile_ignition(
+                kx.utility.merge_complex_dictionaries(
+                    universal_ignition.generate_worker_configuration(pool_name="worker"),
+                    self.generate_worker_configuration(pool_name="worker"),
+                )
+            ),
+        )
 
     def create_cluster(self) -> None:
         self.__generate_ignition_files()
@@ -159,18 +167,21 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
     def delete_cluster(self) -> None:
         logger.info("Destroying virtual machines...")
         kx.vagrant.commands.vagrant_destroy()
-        for ignition_path in Vagrant.box_directory_path().glob("*-ignition.json"):
-            logger.info(f"Deleting {ignition_path}...")
-            ignition_path.unlink()
+        ignition_directory_path = kx.utility.project_directory().joinpath(
+            "vagrant/ignition"
+        )
+        for file_path in ignition_directory_path.glob("*-ignition.json"):
+            logger.info(f"Deleting {file_path}...")
+            file_path.unlink()
 
     def clean_provider(self) -> None:
-        box_directory_path = Vagrant.box_directory_path()
+        box_directory_path = kx.utility.project_directory().joinpath("vagrant/boxes")
         logger.info(f"Cleaning {box_directory_path}...")
         for box_path in box_directory_path.glob("fedora-coreos*.tar.gz"):
             logger.info(f"Deleting {box_path}...")
             box_path.unlink()
 
-    def __generate_vagrant_fcc_overlay(self) -> dict:
+    def __generate_base_fcc_configuration(self) -> dict:
         return {
             "passwd": {
                 "users": [
@@ -192,17 +203,19 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
             },
         }
 
-    def generate_storage_fcc(self) -> dict:
+    def generate_etcd_configuration(self) -> dict:
+        return self.__generate_base_fcc_configuration()
+
+    def generate_master_configuration(self) -> dict:
         storage_fcc = kx.utility.merge_complex_dictionaries(
-            kx.ignition.fcc.skeletal_fcc(),
-            self.__generate_vagrant_fcc_overlay(),
+            self.__generate_base_fcc_configuration(),
             {
                 "systemd": {
                     "units": [
                         {
                             "name": "nginx.service",
                             "enabled": True,
-                            "contents": kx.ignition.fcc.content_from_file(
+                            "contents": kx.ignition.fcc.content_from_repository(
                                 "systemd/vagrant/nginx.service"
                             ),
                         }
@@ -212,27 +225,5 @@ class Vagrant(kx.infrastructure.InfrastructureProvider):
         )
         return storage_fcc
 
-    def generate_etcd_fcc_overlay(
-        self,
-        *,
-        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
-        project_configuration: kx.configuration.project.ProjectConfiguration,
-    ) -> dict:
-        return self.__generate_vagrant_fcc_overlay()
-
-    def generate_master_fcc_overlay(
-        self,
-        *,
-        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
-        project_configuration: kx.configuration.project.ProjectConfiguration,
-    ) -> dict:
-        return self.__generate_vagrant_fcc_overlay()
-
-    def generate_worker_fcc_overlay(
-        self,
-        *,
-        pool_name: str,
-        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
-        project_configuration: kx.configuration.project.ProjectConfiguration,
-    ) -> dict:
-        return self.__generate_vagrant_fcc_overlay()
+    def generate_worker_configuration(self, *, pool_name) -> dict:
+        return self.__generate_base_fcc_configuration()
