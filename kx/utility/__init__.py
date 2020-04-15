@@ -3,7 +3,10 @@
 # Contains utility functions that don't fit anywhere else.
 
 import __main__  # type: ignore
+import hashlib
+import json
 import pathlib
+import typing
 
 
 def project_directory() -> pathlib.Path:
@@ -40,3 +43,11 @@ def merge_complex_dictionaries(*args) -> dict:
         merge(result, d)
 
     return result
+
+
+def sha512_hash(o: typing.Union[str, dict]) -> str:
+    if isinstance(o, dict):
+        string_data = json.dumps(o, sort_keys=True)
+    else:
+        string_data = str(o)
+    return hashlib.sha512(string_data.encode()).hexdigest()

@@ -5,6 +5,7 @@
 
 import argparse
 import enum
+import json
 import kx.configuration.cluster
 import kx.configuration.project
 import kx.logging
@@ -77,6 +78,11 @@ def main() -> None:
     with open(configuration_path) as f:
         cluster_configuration = kx.configuration.cluster.load_cluster_configuration(f)
 
+    universal_ignition_provider = kx.ignition.fcc.UniversalFCCProvider(
+        cluster_configuration=cluster_configuration,
+        project_configuration=project_configuration,
+    )
+
     provider: kx.infrastructure.InfrastructureProvider
     if cluster_configuration.provider == "Vagrant":
         from kx.vagrant.provider import Vagrant
@@ -94,7 +100,118 @@ def main() -> None:
         provider.prepare_provider()
     elif arguments.action == Action.CREATE_CLUSTER:
         logger.info(f"Creating {cluster_configuration.provider} cluster...")
-        provider.create_cluster()
+
+        logger.info(f"Creating blob storage infrastructure...")
+        provider.create_blob_storage()
+
+        logger.info("Creating network infrastructure...")
+        provider.create_network_resources()
+
+        logger.info(f"Uploading TLS public key infrastructure...")
+        tls_pki_catalog = provider.upload_tls_certificates(
+            etcd_pki=kx.tls.pki.create_etcd_pki(
+                etcd_peer_ip_addresses=provider.query_etcd_peer_names(),
+                etcd_server_ip_addresses=provider.query_etcd_server_names(),
+                encryption_key=cluster_configuration.cluster_tls_pki_encryption_key,
+            ),
+            kubernetes_pki=kx.tls.pki.create_kubernetes_pki(
+                apiserver_names=provider.query_apiserver_names(),
+                encryption_key=cluster_configuration.cluster_tls_pki_encryption_key,
+            ),
+        )
+
+        logger.info("Generating Ignition data...")
+        universal_fcc_provider = kx.ignition.fcc.UniversalFCCProvider(
+            cluster_configuration=cluster_configuration,
+            project_configuration=project_configuration,
+        )
+        unstable_fcc_provider = kx.ignition.fcc.UnstableFCCProvider(
+            tls_pki_catalog=tls_pki_catalog
+        )
+
+        stable_etcd_ignition_data = kx.utility.merge_complex_dictionaries(
+            universal_ignition_provider.generate_etcd_configuration(),
+            provider.generate_etcd_configuration(),
+        )
+        stable_etcd_ignition_hash = kx.utility.sha512_hash(stable_etcd_ignition_data)
+        etcd_ignition_data = json.dumps(
+            kx.utility.merge_complex_dictionaries(
+                unstable_fcc_provider.generate_etcd_configuration()
+            )
+        )
+        etcd_ignition_verification_hash = kx.utility.sha512_hash(etcd_ignition_data)
+
+        stable_master_ignition_data = kx.utility.merge_complex_dictionaries(
+            universal_ignition_provider.generate_master_configuration(),
+            provider.generate_master_configuration(),
+        )
+        stable_master_ignition_hash = kx.utility.sha512_hash(
+            stable_master_ignition_data
+        )
+        master_ignition_data = json.dumps(
+            kx.utility.merge_complex_dictionaries(
+                unstable_fcc_provider.generate_master_configuration()
+            )
+        )
+        master_ignition_verification_hash = kx.utility.sha512_hash(master_ignition_data)
+
+        worker_pool_names = ("worker")
+        worker_ignition_data = {}
+        worker_stable_hashes = {}
+        worker_verification_hashes = {}
+        for pool_name in worker_pool_names:
+            stable_worker_ignition_data = kx.utility.merge_complex_dictionaries(
+                universal_ignition_provider.generate_worker_configuration(
+                    pool_name=pool_name
+                ),
+                provider.generate_worker_configuration(pool_name=pool_name),
+            )
+            worker_stable_hashes[pool_name] = kx.utility.sha512_hash(
+                stable_worker_ignition_data
+            )
+            worker_ignition_data[pool_name] = json.dumps(
+                kx.utility.merge_complex_dictionaries(
+                    unstable_fcc_provider.generate_worker_configuration(
+                        pool_name=pool_name
+                    )
+                )
+            )
+            worker_verification_hashes[pool_name] = kx.utility.sha512_hash(
+                worker_ignition_data
+            )
+
+        logger.info("Uploading Ignition data...")
+        ignition_urls = provider.upload_ignition_data(
+            etcd_ignition_data=etcd_ignition_data,
+            master_ignition_data=master_ignition_data,
+            worker_ignition_data=worker_ignition_data,
+        )
+
+        logger.info("Launching compute infrastructure...")
+        provider.create_compute_resources(
+            ignition_data=kx.infrastructure.Ignition(
+                etcd=kx.infrastructure.IgnitionReference(
+                    url=ignition_urls.etcd_ignition_url,
+                    stable_hash=stable_etcd_ignition_hash,
+                    verification_hash=etcd_ignition_verification_hash,
+                ),
+                master=kx.infrastructure.IgnitionReference(
+                    url=ignition_urls.master_ignition_url,
+                    stable_hash=stable_master_ignition_hash,
+                    verification_hash=master_ignition_verification_hash,
+                ),
+                worker={
+                    n: kx.infrastructure.IgnitionReference(
+                        url=ignition_urls.worker_ignition_urls[n],
+                        stable_hash=worker_stable_hashes[pool_name],
+                        verification_hash=worker_verification_hashes[pool_name],
+                    )
+                    for n in worker_pool_names
+                },
+            )
+        )
+
+        logger.info(f"{cluster_configuration.provider} cluster created!")
     elif arguments.action == Action.DELETE_CLUSTER:
         logger.info(f"Deleting {cluster_configuration.provider} cluster...")
         provider.delete_cluster()

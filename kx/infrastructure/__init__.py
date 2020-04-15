@@ -3,6 +3,7 @@
 # This module contains cross-provider interfaces.
 
 import abc
+import dataclasses
 import enum
 import ipaddress
 import kx.tls.pki
@@ -33,10 +34,20 @@ class InfrastructureProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def create_cluster(self) -> None:
+    def create_blob_storage(self) -> None:
         """
         This function is called when a cluster is initially created. It should
-        create all of the cluster's infrastructure.
+        create the cluster's blob storage infrastructure.
+
+        This function may be non-idempotent.
+        """
+        pass
+
+    @abc.abstractmethod
+    def create_network_resources(self) -> None:
+        """
+        This function is called when a cluster is initially created. It should
+        create all of the cluster's network infrastructure.
 
         This function may be non-idempotent.
         """
@@ -72,6 +83,7 @@ class InfrastructureProvider(abc.ABC):
         This should include the apiserver load balancer, but should not include
         the apiserver Nodes.
         """
+        pass
 
     @abc.abstractmethod
     def upload_tls_certificates(
@@ -85,6 +97,32 @@ class InfrastructureProvider(abc.ABC):
         catalog of URLs from which the certificates and keys may be downloaded.
         The catalog should contain only secure URLs, e.g. signed URLs.
         """
+        pass
+
+    @abc.abstractmethod
+    def upload_ignition_data(
+        self,
+        *,
+        etcd_ignition_data: str,
+        master_ignition_data: str,
+        worker_ignition_data: typing.Dict[str, str]
+    ) -> IgnitionURLCatalog:
+        """
+        Upload the given Ignition data to a blob storage provider. Return a
+        catalog of URLs from which the Ignition data may be downloaded. The
+        catalog should contain only secure URLs, e.g. signed URLs.
+        """
+        pass
+
+    @abc.abstractmethod
+    def create_compute_resources(self, *, ignition_data: Ignition) -> None:
+        """
+        This function is called when a cluster is initially created. It should
+        create all of the cluster's compute infrastructure.
+
+        This function may be non-idempotent.
+        """
+        pass
 
     @abc.abstractmethod
     def delete_cluster(self) -> None:
@@ -105,3 +143,24 @@ class InfrastructureProvider(abc.ABC):
         This function must be idempotent.
         """
         pass
+
+
+@dataclasses.dataclass
+class IgnitionURLCatalog:
+    etcd_ignition_url: yarl.URL
+    master_ignition_url: yarl.URL
+    worker_ignition_urls: typing.Dict[str, yarl.URL]
+
+
+@dataclasses.dataclass
+class IgnitionReference:
+    url: yarl.URL
+    stable_hash: str
+    verification_hash: str
+
+
+@dataclasses.dataclass
+class Ignition:
+    etcd: IgnitionReference
+    master: IgnitionReference
+    worker: typing.Dict[str, IgnitionReference]

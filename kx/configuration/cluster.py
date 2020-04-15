@@ -15,6 +15,8 @@ class ClusterConfiguration:
     provider: typing.Literal["Vagrant"]
     # List of SSH public keys which will be authorized for the user named "core"
     ssh_keys: typing.List[str]
+    # Password used to encrypt the cluster's TLS PKI keys at rest
+    cluster_tls_pki_encryption_key: str
 
 
 def load_cluster_configuration(f: typing.IO) -> ClusterConfiguration:
@@ -38,7 +40,11 @@ def validate_configuration(configuration: ClusterConfiguration,) -> None:
     configuration is valid, runs to completion. Otherwise, raises an
     AssertError.
     """
-    validators = [validate_provider, validate_ssh_keys]
+    validators = [
+        validate_provider,
+        validate_ssh_keys,
+        validate_cluster_tls_pki_encryption_key,
+    ]
 
     for f in validators:
         f(configuration)
@@ -60,3 +66,12 @@ def validate_ssh_keys(configuration: ClusterConfiguration,) -> None:
     assert all(
         isinstance(key, str) for key in configuration.ssh_keys
     ), "ssh_keys must be a list of strings"
+
+    # TODO check that every key looks like a public key
+
+
+def validate_cluster_tls_pki_encryption_key(
+    configuration: ClusterConfiguration,
+) -> None:
+    assert configuration.cluster_tls_pki_encryption_key
+    # TODO check if the password is shite

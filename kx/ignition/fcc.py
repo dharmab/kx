@@ -4,6 +4,7 @@ import abc
 import jinja2
 import kx.configuration.cluster
 import kx.configuration.project
+import kx.tls.pki
 import kx.utility
 import yaml
 import yarl
@@ -190,3 +191,19 @@ class UniversalFCCProvider(FedoraCoreOSConfigurationProvider):
                 }
             },
         )
+
+
+class UnstableFCCProvider(FedoraCoreOSConfigurationProvider):
+    def __init__(
+        self, *, tls_pki_catalog: kx.tls.pki.PublicKeyInfrastructureCatalog,
+    ):
+        pass
+
+    def generate_etcd_configuration(self) -> dict:
+        raise NotImplementedError
+
+    def generate_master_configuration(self) -> dict:
+        raise NotImplementedError
+
+    def generate_worker_configuration(self, *, pool_name: str) -> dict:
+        raise NotImplementedError

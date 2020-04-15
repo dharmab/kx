@@ -126,11 +126,6 @@ class Vagrant(
             ignition_directory_path.mkdir(parents=True)
         assert ignition_directory_path.is_dir()
 
-        universal_ignition = kx.ignition.fcc.UniversalFCCProvider(
-            cluster_configuration=self.__cluster_configuration,
-            project_configuration=self.__project_configuration,
-        )
-
         self.__generate_ignition_file(
             "etcd",
             ignition_data=kx.ignition.transpilation.transpile_ignition(
@@ -210,7 +205,69 @@ class Vagrant(
         etcd_pki: kx.tls.pki.EtcdPublicKeyInfrastructure,
         kubernetes_pki: kx.tls.pki.KubernetesPublicKeyInfrastructure,
     ) -> kx.tls.pki.PublicKeyInfrastructureCatalog:
-        raise NotImplementedError
+        tls_directory = kx.utility.project_directory().joinpath("vagrant/tls/")
+        if not tls_directory.exists():
+            tls_directory.mkdir()
+        assert tls_directory.is_dir()
+
+        base_url = yarl.URL("http://10.13.1.5/tls/")
+
+        def write_file(filename: str, content: str) -> yarl.URL:
+            with open(tls_directory.joinpath(filename), "w") as f:
+                f.write(content)
+            return base_url.join(yarl.URL(filename))
+
+        return kx.tls.pki.PublicKeyInfrastructureCatalog(
+            kubernetes_certificate_authority=write_file(
+                "kubernetes-ca.pem", kubernetes_pki.certificate_authority.public_key
+            ),
+            kubernetes_signing_key=write_file(
+                "kubernetes_ca.key", kubernetes_pki.certificate_authority.private_key
+            ),
+            apiserver_certificate=write_file(
+                "kube-apiserver.pem", kubernetes_pki.apiserver_keypair.public_key
+            ),
+            apiserver_private_key=write_file(
+                "kube-apierver.key", kubernetes_pki.apiserver_keypair.private_key
+            ),
+            controller_manager_certificate=write_file(
+                "kube-controller-manager.pem",
+                kubernetes_pki.controller_manager_keypair.public_key,
+            ),
+            controller_manager_private_key=write_file(
+                "kube-controller-manager.key",
+                kubernetes_pki.controller_manager_keypair.private_key,
+            ),
+            scheduler_certificate=write_file(
+                "kube-scheduler.pem", kubernetes_pki.scheduler_keypair.public_key
+            ),
+            scheduler_private_key=write_file(
+                "kube-scheduler.key", kubernetes_pki.scheduler_keypair.private_key
+            ),
+            etcd_certificate_authority=write_file(
+                "etcd-ca.pem", etcd_pki.certificate_authority.public_key
+            ),
+            etcd_peer_certificate=write_file(
+                "etcd-peer.pem", etcd_pki.etcd_peer_keypair.public_key
+            ),
+            etcd_peer_private_key=write_file(
+                "etcd-peer.key", etcd_pki.certificate_authority.private_key
+            ),
+            etcd_server_certificate=write_file(
+                "etcd-server.pem", etcd_pki.etcd_server_keypair.public_key
+            ),
+            etcd_server_private_key=write_file(
+                "etcd-server.key", etcd_pki.etcd_server_keypair.private_key
+            ),
+            etcd_apiserver_client_certificate=write_file(
+                "etcd-kube-apiserver-client.pem",
+                etcd_pki.etcd_apiserver_client_keypair.private_key,
+            ),
+            etcd_apiserver_client_private_key=write_file(
+                "etcd-kube-apiserver-client.key",
+                etcd_pki.etcd_apiserver_client_keypair.private_key,
+            ),
+        )
 
     def clean_provider(self) -> None:
         box_directory_path = kx.utility.project_directory().joinpath("vagrant/boxes")

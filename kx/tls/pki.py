@@ -17,7 +17,6 @@ class KubernetesPublicKeyInfrastructure:
     apiserver_keypair: kx.tls.crypto.SerializedKeypair
     controller_manager_keypair: kx.tls.crypto.SerializedKeypair
     scheduler_keypair: kx.tls.crypto.SerializedKeypair
-    encryption_key: str
 
 
 def create_kubernetes_pki(
@@ -25,7 +24,6 @@ def create_kubernetes_pki(
     apiserver_names: typing.List[
         typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address, yarl.URL]
     ],
-    cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
     encryption_key: str
 ) -> KubernetesPublicKeyInfrastructure:
     certificate_authority_name = kx.tls.crypto.generate_subject_name(
@@ -98,7 +96,6 @@ def create_kubernetes_pki(
         controller_manager_keypair=kx.tls.crypto.serialize_keypair(
             controller_manager_keypair, encryption_key=encryption_key
         ),
-        encryption_key=encryption_key,
     )
 
 
@@ -108,7 +105,6 @@ class EtcdPublicKeyInfrastructure:
     etcd_server_keypair: kx.tls.crypto.SerializedKeypair
     etcd_peer_keypair: kx.tls.crypto.SerializedKeypair
     etcd_apiserver_client_keypair: kx.tls.crypto.SerializedKeypair
-    encryption_key: str
 
 
 def create_etcd_pki(
@@ -176,7 +172,6 @@ def create_etcd_pki(
         etcd_apiserver_client_keypair=kx.tls.crypto.serialize_keypair(
             apiserver_keypair, encryption_key=encryption_key
         ),
-        encryption_key=encryption_key,
     )
 
 
@@ -197,4 +192,3 @@ class PublicKeyInfrastructureCatalog:
     etcd_server_private_key: yarl.URL
     etcd_apiserver_client_certificate: yarl.URL
     etcd_apiserver_client_private_key: yarl.URL
-    encryption_key: str
