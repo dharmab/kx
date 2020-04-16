@@ -37,7 +37,7 @@ def create_kubernetes_pki(
         ),
     )
 
-    apiserver_alternative_name: cryptography.x509.GeneralNames = [
+    apiserver_general_names: cryptography.x509.GeneralNames = [
         # Localhost for master node loop traffic
         cryptography.x509.IPAddress(ipaddress.ip_address("127.0.0.1")),
         # Well-known IP for apiserver Kubernetes service
@@ -51,11 +51,13 @@ def create_kubernetes_pki(
     ]
     for name in apiserver_names:
         if isinstance(name, yarl.URL):
-            apiserver_alternative_name.append(
-                cryptography.x509.DNSName(name.human_repr())
-            )
+            apiserver_general_names.append(cryptography.x509.DNSName(name.human_repr()))
         else:
-            apiserver_alternative_name.append(cryptography.x509.IPAddress(name))
+            apiserver_general_names.append(cryptography.x509.IPAddress(name))
+
+    apiserver_alternative_name = cryptography.x509.SubjectAlternativeName(
+        apiserver_general_names
+    )
 
     apiserver_keypair = kx.tls.crypto.generate_keypair(
         kx.tls.crypto.generate_subject_name(

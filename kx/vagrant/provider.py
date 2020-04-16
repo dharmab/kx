@@ -115,54 +115,33 @@ class Vagrant(
         with open(ignition_path, "w") as f:
             json.dump(ignition_data, f)
 
-    def __generate_ignition_files(self) -> None:
-        # Write Ignition files to disk where libvirt can see them
-        logger.info("Generating Ignition data...")
+    def create_blob_storage(self) -> None:
+        for directory in ("ignition", "tls"):
+            path = kx.utility.project_directory().joinpath(f"vagrant/{directory}/")
+            if not path.exists():
+                logger.info(f"Creating {path}...")
+                path.mkdir()
+            assert path.is_dir()
 
-        ignition_directory_path = kx.utility.project_directory().joinpath(
-            f"vagrant/ignition/"
+    def create_network_resources(self) -> None:
+        load_balancer_ignition_data = kx.ignition.transpilation.transpile_ignition(
+            self.__generate_load_balancer_configuration()
         )
-        if not ignition_directory_path.exists():
-            ignition_directory_path.mkdir(parents=True)
-        assert ignition_directory_path.is_dir()
+        load_balancer_ignition_path = kx.utility.project_directory().joinpath(
+            "vagrant/ignition/load-balancer-ignition.json"
+        )
+        logger.info(f"Writing {load_balancer_ignition_path}...")
+        with open(load_balancer_ignition_path, "w") as f:
+            json.dump(load_balancer_ignition_data, f)
 
-        self.__generate_ignition_file(
-            "etcd",
-            ignition_data=kx.ignition.transpilation.transpile_ignition(
-                kx.utility.merge_complex_dictionaries(
-                    universal_ignition.generate_etcd_configuration(),
-                    self.generate_etcd_configuration(),
-                )
-            ),
-        )
-
-        self.__generate_ignition_file(
-            "master",
-            ignition_data=kx.ignition.transpilation.transpile_ignition(
-                kx.utility.merge_complex_dictionaries(
-                    universal_ignition.generate_master_configuration(),
-                    self.generate_master_configuration(),
-                )
-            ),
-        )
-
-        self.__generate_ignition_file(
-            "worker",
-            ignition_data=kx.ignition.transpilation.transpile_ignition(
-                kx.utility.merge_complex_dictionaries(
-                    universal_ignition.generate_worker_configuration(
-                        pool_name="worker"
-                    ),
-                    self.generate_worker_configuration(pool_name="worker"),
-                )
-            ),
-        )
+        logger.info("Running `vagrant up load-balancer`...")
+        kx.vagrant.commands.vagrant_up("load-balancer")
 
     def create_cluster(self) -> None:
-        self.__generate_ignition_files()
         logger.info("Creating virtual machines...")
         kx.vagrant.commands.vagrant_up()
-        logger.info("Virtual machines launched! Use `vagrant status` and `vagrant ssh`")
+        logger.info("Show VMs with `vagrant status`")
+        logger.info("SSH to a VM with `vagrant ssh`")
 
     def delete_cluster(self) -> None:
         logger.info("Destroying virtual machines...")
@@ -205,12 +184,9 @@ class Vagrant(
         etcd_pki: kx.tls.pki.EtcdPublicKeyInfrastructure,
         kubernetes_pki: kx.tls.pki.KubernetesPublicKeyInfrastructure,
     ) -> kx.tls.pki.PublicKeyInfrastructureCatalog:
-        tls_directory = kx.utility.project_directory().joinpath("vagrant/tls/")
-        if not tls_directory.exists():
-            tls_directory.mkdir()
-        assert tls_directory.is_dir()
-
         base_url = yarl.URL("http://10.13.1.5/tls/")
+
+        tls_directory = kx.utility.project_directory().joinpath("vagrant/tls")
 
         def write_file(filename: str, content: str) -> yarl.URL:
             with open(tls_directory.joinpath(filename), "w") as f:
@@ -269,6 +245,46 @@ class Vagrant(
             ),
         )
 
+    def upload_ignition_data(
+        self,
+        *,
+        etcd_ignition_data: str,
+        master_ignition_data: str,
+        worker_ignition_data: typing.Dict[str, str],
+    ) -> kx.infrastructure.IgnitionURLCatalog:
+        ignition_path = kx.utility.project_directory().joinpath("vagrant/ignition/")
+
+        etcd_path = ignition_path.joinpath("etcd-ignition.json")
+        with open(etcd_ignition_data) as f:
+            logger.info(f"Writing {etcd_path}...")
+            f.write(etcd_ignition_data)
+
+        master_path = ignition_path.joinpath("master-ignition.json")
+        with open(master_ignition_data) as f:
+            logger.info(f"Writing {master_path}...")
+            f.write(master_ignition_data)
+
+        # TODO multiworker
+        worker_path = ignition_path.joinpath("worker-ignition.json")
+        with open(worker_path) as f:
+            logger.info(f"Writing {worker_path}...")
+            f.write(worker_ignition_data["worker"])
+
+        # Ignition distributed through filesystem, so catalog is a no-op
+        return kx.infrastructure.IgnitionURLCatalog(
+            etcd_ignition_url=yarl.URL("http://example.com"),
+            master_ignition_url=yarl.URL("http://example.com"),
+            worker_ignition_urls={
+                n: yarl.URL("http://example.com") for n in worker_ignition_data
+            },
+        )
+
+    def create_compute_resources(
+        self, *, ignition_data: kx.infrastructure.Ignition
+    ) -> None:
+        logger.info("Running `vagrant up`...")
+        kx.vagrant.commands.vagrant_up()
+
     def clean_provider(self) -> None:
         box_directory_path = kx.utility.project_directory().joinpath("vagrant/boxes")
         logger.info(f"Cleaning {box_directory_path}...")
@@ -278,6 +294,9 @@ class Vagrant(
 
     def __generate_base_fcc_configuration(self) -> dict:
         return {
+            "variant": "fcos",
+            "version": "1.0.0",
+            "ignition": {},
             "passwd": {
                 "users": [
                     {
@@ -290,13 +309,49 @@ class Vagrant(
             },
             "storage": {
                 "files": [
-                    {
-                        "path": "/etc/sudoers.d/vagrant",
-                        "contents": {"inline": "vagrant ALL=(ALL) NOPASSWD: ALL"},
-                    }
+                    kx.ignition.fcc.file_from_content(
+                        "/etc/sudoers.d/vagrant",
+                        contents=kx.ignition.fcc.content_from_lines(
+                            "vagrant ALL=(ALL) NOPASSWD: ALL"
+                        ),
+                    )
                 ]
             },
         }
+
+    def __generate_load_balancer_configuration(self) -> dict:
+        return kx.utility.merge_complex_dictionaries(
+            self.__generate_base_fcc_configuration(),
+            {
+                "systemd": {
+                    "units": [
+                        {
+                            "name": "nginx.service",
+                            "enabled": True,
+                            "contents": kx.ignition.fcc.content_from_repository(
+                                "systemd/vagrant/nginx-l4.service"
+                            ),
+                        }
+                    ]
+                },
+                "storage": {
+                    "files": [
+                        kx.ignition.fcc.file_from_content(
+                            "/etc/selinux/config",
+                            kx.ignition.fcc.content_from_lines(
+                                "SELINUX=permissive", "SELINUXTYPE=targeted"
+                            ),
+                        ),
+                        kx.ignition.fcc.file_from_content(
+                            "/etc/nginx/nginx.conf",
+                            contents=kx.ignition.fcc.content_from_repository(
+                                "files/vagrant/nginx-l4.conf"
+                            ),
+                        ),
+                    ]
+                },
+            },
+        )
 
     def generate_etcd_configuration(self) -> dict:
         return self.__generate_base_fcc_configuration()
@@ -311,7 +366,7 @@ class Vagrant(
                             "name": "nginx.service",
                             "enabled": True,
                             "contents": kx.ignition.fcc.content_from_repository(
-                                "systemd/vagrant/nginx.service"
+                                "systemd/vagrant/nginx-blob.service"
                             ),
                         }
                     ]

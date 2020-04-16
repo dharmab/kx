@@ -30,7 +30,7 @@ def file_from_url(path: str, url: yarl.URL, *, mode: int = 0o644) -> dict:
 
 def content_from_repository(path: str) -> str:
     file_path = (
-        kx.utility.project_directory().joinpath("kx/resources/fcc/files").joinpath(path)
+        kx.utility.project_directory().joinpath("kx/resources/fcc").joinpath(path)
     )
     with open(file_path) as f:
         return f.read()

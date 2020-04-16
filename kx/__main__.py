@@ -8,6 +8,7 @@ import enum
 import json
 import kx.configuration.cluster
 import kx.configuration.project
+import kx.ignition.fcc
 import kx.logging
 import kx.tooling
 import os
@@ -155,7 +156,7 @@ def main() -> None:
         )
         master_ignition_verification_hash = kx.utility.sha512_hash(master_ignition_data)
 
-        worker_pool_names = ("worker")
+        worker_pool_names = "worker"
         worker_ignition_data = {}
         worker_stable_hashes = {}
         worker_verification_hashes = {}

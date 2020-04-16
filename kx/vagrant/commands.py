@@ -20,8 +20,8 @@ def _run_vagrant(*args) -> None:
         raise
 
 
-def vagrant_up() -> None:
-    _run_vagrant("up", "--provider", "libvirt", "--parallel")
+def vagrant_up(*args) -> None:
+    _run_vagrant("up", "--provider", "libvirt", "--parallel", *args)
 
 
 def vagrant_destroy() -> None:

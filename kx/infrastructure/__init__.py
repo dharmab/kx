@@ -11,10 +11,25 @@ import typing
 import yarl
 
 
-class NodeRole(enum.Enum):
-    ETCD = enum.auto()
-    MASTER = enum.auto()
-    WORKER = enum.auto()
+@dataclasses.dataclass
+class IgnitionURLCatalog:
+    etcd_ignition_url: yarl.URL
+    master_ignition_url: yarl.URL
+    worker_ignition_urls: typing.Dict[str, yarl.URL]
+
+
+@dataclasses.dataclass
+class IgnitionReference:
+    url: yarl.URL
+    stable_hash: str
+    verification_hash: str
+
+
+@dataclasses.dataclass
+class Ignition:
+    etcd: IgnitionReference
+    master: IgnitionReference
+    worker: typing.Dict[str, IgnitionReference]
 
 
 class InfrastructureProvider(abc.ABC):
@@ -143,24 +158,3 @@ class InfrastructureProvider(abc.ABC):
         This function must be idempotent.
         """
         pass
-
-
-@dataclasses.dataclass
-class IgnitionURLCatalog:
-    etcd_ignition_url: yarl.URL
-    master_ignition_url: yarl.URL
-    worker_ignition_urls: typing.Dict[str, yarl.URL]
-
-
-@dataclasses.dataclass
-class IgnitionReference:
-    url: yarl.URL
-    stable_hash: str
-    verification_hash: str
-
-
-@dataclasses.dataclass
-class Ignition:
-    etcd: IgnitionReference
-    master: IgnitionReference
-    worker: typing.Dict[str, IgnitionReference]

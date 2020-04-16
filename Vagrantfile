@@ -4,6 +4,7 @@ ENV["LC_ALL"] = "en_US.UTF-8"
 Vagrant.configure('2') do |config|
   asset_directory = File.join(File.dirname(__FILE__), 'vagrant')
   box_file = File.join(asset_directory, 'boxes/fedora-coreos.tar.gz')
+  load_balancer_ignition_file = File.join(asset_directory, 'ignition/load-balancer-ignition.json')
   etcd_ignition_file = File.join(asset_directory, 'ignition/etcd-ignition.json')
   master_ignition_file = File.join(asset_directory, 'ignition/master-ignition.json')
   worker_ignition_file = File.join(asset_directory, 'ignition/worker-ignition.json')
@@ -20,7 +21,7 @@ Vagrant.configure('2') do |config|
       libvirt.cpus = 1
       libvirt.memory = 512
       libvirt.qemuargs :value => '-fw_cfg'
-      libvirt.qemuargs :value => "name=opt/com.coreos/config,file=#{worker_ignition_file}"
+      libvirt.qemuargs :value => "name=opt/com.coreos/config,file=#{load_balancer_ignition_file}"
     end
   end
 

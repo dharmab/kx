@@ -37,7 +37,7 @@ def standard_hash_algorithm() -> cryptography.hazmat.primitives.hashes.HashAlgor
 
 def _random_serial_number() -> int:
     # https://tools.ietf.org/html/rfc3280#section-4.1.2.2
-    return secrets.randbits(20 * 8)
+    return secrets.randbits(20 * 8 - 1)
 
 
 def generate_private_key() -> PrivateKey:
