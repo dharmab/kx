@@ -179,7 +179,7 @@ class Vagrant(
         etcd_pki: kx.tls.pki.EtcdPublicKeyInfrastructure,
         kubernetes_pki: kx.tls.pki.KubernetesPublicKeyInfrastructure,
     ) -> kx.tls.pki.PublicKeyInfrastructureCatalog:
-        base_url = yarl.URL("http://10.13.1.5/tls/")
+        base_url = yarl.URL("http://10.13.1.5:8080/tls/")
 
         tls_directory = kx.utility.project_directory().joinpath("vagrant/tls")
 
@@ -250,18 +250,18 @@ class Vagrant(
         ignition_path = kx.utility.project_directory().joinpath("vagrant/ignition/")
 
         etcd_path = ignition_path.joinpath("etcd-ignition.json")
-        with open(etcd_ignition_data) as f:
+        with open(etcd_path, 'w') as f:
             logger.info(f"Writing {etcd_path}...")
             f.write(etcd_ignition_data)
 
         master_path = ignition_path.joinpath("master-ignition.json")
-        with open(master_ignition_data) as f:
+        with open(master_path, 'w') as f:
             logger.info(f"Writing {master_path}...")
             f.write(master_ignition_data)
 
         # TODO multiworker
         worker_path = ignition_path.joinpath("worker-ignition.json")
-        with open(worker_path) as f:
+        with open(worker_path, 'w') as f:
             logger.info(f"Writing {worker_path}...")
             f.write(worker_ignition_data["worker"])
 
@@ -355,17 +355,6 @@ class Vagrant(
         storage_fcc = kx.utility.merge_complex_dictionaries(
             self.__generate_base_fcc_configuration(),
             {
-                "systemd": {
-                    "units": [
-                        {
-                            "name": "nginx.service",
-                            "enabled": True,
-                            "contents": kx.ignition.fcc.content_from_repository(
-                                "systemd/vagrant/nginx-blob.service"
-                            ),
-                        }
-                    ]
-                }
             },
         )
         return storage_fcc

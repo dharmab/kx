@@ -129,6 +129,7 @@ def main() -> None:
         stable_etcd_ignition_hash = kx.utility.sha512_hash(stable_etcd_ignition_data)
         etcd_ignition_data = json.dumps(
             kx.utility.merge_complex_dictionaries(
+                stable_etcd_ignition_data,
                 unstable_fcc_provider.generate_etcd_configuration()
             )
         )
@@ -143,12 +144,13 @@ def main() -> None:
         )
         master_ignition_data = json.dumps(
             kx.utility.merge_complex_dictionaries(
+                stable_master_ignition_data,
                 unstable_fcc_provider.generate_master_configuration()
             )
         )
         master_ignition_verification_hash = kx.utility.sha512_hash(master_ignition_data)
 
-        worker_pool_names = "worker"
+        worker_pool_names = ["worker"]
         worker_ignition_data = {}
         worker_stable_hashes = {}
         worker_verification_hashes = {}
@@ -164,6 +166,7 @@ def main() -> None:
             )
             worker_ignition_data[pool_name] = json.dumps(
                 kx.utility.merge_complex_dictionaries(
+                    stable_worker_ignition_data,
                     unstable_fcc_provider.generate_worker_configuration(
                         pool_name=pool_name
                     )
