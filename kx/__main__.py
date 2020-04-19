@@ -127,10 +127,10 @@ def main() -> None:
             provider.generate_etcd_configuration(),
         )
         stable_etcd_ignition_hash = kx.utility.sha512_hash(stable_etcd_ignition_data)
-        etcd_ignition_data = json.dumps(
+        etcd_ignition_data = kx.ignition.transpilation.transpile_ignition(
             kx.utility.merge_complex_dictionaries(
                 stable_etcd_ignition_data,
-                unstable_fcc_provider.generate_etcd_configuration()
+                unstable_fcc_provider.generate_etcd_configuration(),
             )
         )
         etcd_ignition_verification_hash = kx.utility.sha512_hash(etcd_ignition_data)
@@ -142,10 +142,10 @@ def main() -> None:
         stable_master_ignition_hash = kx.utility.sha512_hash(
             stable_master_ignition_data
         )
-        master_ignition_data = json.dumps(
+        master_ignition_data = kx.ignition.transpilation.transpile_ignition(
             kx.utility.merge_complex_dictionaries(
                 stable_master_ignition_data,
-                unstable_fcc_provider.generate_master_configuration()
+                unstable_fcc_provider.generate_master_configuration(),
             )
         )
         master_ignition_verification_hash = kx.utility.sha512_hash(master_ignition_data)
@@ -164,12 +164,14 @@ def main() -> None:
             worker_stable_hashes[pool_name] = kx.utility.sha512_hash(
                 stable_worker_ignition_data
             )
-            worker_ignition_data[pool_name] = json.dumps(
+            worker_ignition_data[
+                pool_name
+            ] = kx.ignition.transpilation.transpile_ignition(
                 kx.utility.merge_complex_dictionaries(
                     stable_worker_ignition_data,
                     unstable_fcc_provider.generate_worker_configuration(
                         pool_name=pool_name
-                    )
+                    ),
                 )
             )
             worker_verification_hashes[pool_name] = kx.utility.sha512_hash(
@@ -178,9 +180,11 @@ def main() -> None:
 
         logger.info("Uploading Ignition data...")
         ignition_urls = provider.upload_ignition_data(
-            etcd_ignition_data=etcd_ignition_data,
-            master_ignition_data=master_ignition_data,
-            worker_ignition_data=worker_ignition_data,
+            etcd_ignition_data=json.dumps(etcd_ignition_data),
+            master_ignition_data=json.dumps(master_ignition_data),
+            worker_ignition_data={
+                k: json.dumps(v) for k, v in worker_ignition_data.items()
+            },
         )
 
         logger.info("Launching compute infrastructure...")

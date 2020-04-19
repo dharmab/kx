@@ -250,18 +250,18 @@ class Vagrant(
         ignition_path = kx.utility.project_directory().joinpath("vagrant/ignition/")
 
         etcd_path = ignition_path.joinpath("etcd-ignition.json")
-        with open(etcd_path, 'w') as f:
+        with open(etcd_path, "w") as f:
             logger.info(f"Writing {etcd_path}...")
             f.write(etcd_ignition_data)
 
         master_path = ignition_path.joinpath("master-ignition.json")
-        with open(master_path, 'w') as f:
+        with open(master_path, "w") as f:
             logger.info(f"Writing {master_path}...")
             f.write(master_ignition_data)
 
         # TODO multiworker
         worker_path = ignition_path.joinpath("worker-ignition.json")
-        with open(worker_path, 'w') as f:
+        with open(worker_path, "w") as f:
             logger.info(f"Writing {worker_path}...")
             f.write(worker_ignition_data["worker"])
 
@@ -305,12 +305,6 @@ class Vagrant(
             "storage": {
                 "files": [
                     kx.ignition.fcc.file_from_content(
-                        "/etc/selinux/config",
-                        kx.ignition.fcc.content_from_lines(
-                            "SELINUX=permissive", "SELINUXTYPE=targeted"
-                        ),
-                    ),
-                    kx.ignition.fcc.file_from_content(
                         "/etc/sudoers.d/vagrant",
                         contents=kx.ignition.fcc.content_from_lines(
                             "vagrant ALL=(ALL) NOPASSWD: ALL"
@@ -353,9 +347,7 @@ class Vagrant(
 
     def generate_master_configuration(self) -> dict:
         storage_fcc = kx.utility.merge_complex_dictionaries(
-            self.__generate_base_fcc_configuration(),
-            {
-            },
+            self.__generate_base_fcc_configuration(), {},
         )
         return storage_fcc
 

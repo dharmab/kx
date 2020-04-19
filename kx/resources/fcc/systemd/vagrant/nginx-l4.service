@@ -10,9 +10,10 @@ ExecStartPre=-/usr/bin/docker rm nginx
 ExecStartPre=/usr/bin/docker pull nginx
 ExecStart=/usr/bin/docker run \
   --name nginx \
-  --rm \
-  -v /etc/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
   --network=host \
+  -v /etc/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+  -v /vagrant:/vagrant:ro \
+  --rm \
   nginx \
 TimeoutStartSec=infinity
 Restart=always

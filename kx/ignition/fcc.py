@@ -192,7 +192,10 @@ class UnstableFCCProvider(FedoraCoreOSConfigurationProvider):
         return {
             "storage": {
                 "files": [
-                    file_from_url("/etc/kubernetes/tls/kubernetes_ca.pem", self.__url_catalog.kubernetes_certificate_authority),
+                    file_from_url(
+                        "/etc/kubernetes/tls/kubernetes_ca.pem",
+                        self.__url_catalog.kubernetes_certificate_authority,
+                    ),
                 ]
             }
         }
@@ -203,15 +206,31 @@ class UnstableFCCProvider(FedoraCoreOSConfigurationProvider):
             {
                 "storage": {
                     "files": [
-                        file_from_url("/etc/etcd/tls/etcd_ca.pem", self.__url_catalog.etcd_certificate_authority),
-                        file_from_url("/etc/etcd/tls/etcd_peer.key", self.__url_catalog.etcd_server_private_key, mode=0o600),
-                        file_from_url("/etc/etcd/tls/etcd_peer.pem", self.__url_catalog.etcd_peer_certificate),
-                        file_from_url("/etc/etcd/tls/etcd_server.key", self.__url_catalog.etcd_server_private_key, mode=0o600),
-                        file_from_url("/etc/etcd/tls/etcd_server.pem", self.__url_catalog.etcd_server_certificate),
+                        file_from_url(
+                            "/etc/etcd/tls/etcd_ca.pem",
+                            self.__url_catalog.etcd_certificate_authority,
+                        ),
+                        file_from_url(
+                            "/etc/etcd/tls/etcd_peer.key",
+                            self.__url_catalog.etcd_server_private_key,
+                            mode=0o600,
+                        ),
+                        file_from_url(
+                            "/etc/etcd/tls/etcd_peer.pem",
+                            self.__url_catalog.etcd_peer_certificate,
+                        ),
+                        file_from_url(
+                            "/etc/etcd/tls/etcd_server.key",
+                            self.__url_catalog.etcd_server_private_key,
+                            mode=0o600,
+                        ),
+                        file_from_url(
+                            "/etc/etcd/tls/etcd_server.pem",
+                            self.__url_catalog.etcd_server_certificate,
+                        ),
                     ]
                 }
-            }
-
+            },
         )
 
     def generate_master_configuration(self) -> dict:
