@@ -305,6 +305,12 @@ class Vagrant(
             "storage": {
                 "files": [
                     kx.ignition.fcc.file_from_content(
+                        "/etc/selinux/config",
+                        kx.ignition.fcc.content_from_lines(
+                            "SELINUX=permissive", "SELINUXTYPE=targeted"
+                        ),
+                    ),
+                    kx.ignition.fcc.file_from_content(
                         "/etc/sudoers.d/vagrant",
                         contents=kx.ignition.fcc.content_from_lines(
                             "vagrant ALL=(ALL) NOPASSWD: ALL"
@@ -316,7 +322,7 @@ class Vagrant(
 
     def __generate_load_balancer_configuration(self) -> dict:
         return kx.utility.merge_complex_dictionaries(
-            self.__generate_base_fcc_configuration(),
+            self.generate_worker_configuration(pool_name="worker"),
             {
                 "systemd": {
                     "units": [
@@ -331,12 +337,6 @@ class Vagrant(
                 },
                 "storage": {
                     "files": [
-                        kx.ignition.fcc.file_from_content(
-                            "/etc/selinux/config",
-                            kx.ignition.fcc.content_from_lines(
-                                "SELINUX=permissive", "SELINUXTYPE=targeted"
-                            ),
-                        ),
                         kx.ignition.fcc.file_from_content(
                             "/etc/nginx/nginx.conf",
                             contents=kx.ignition.fcc.content_from_repository(
