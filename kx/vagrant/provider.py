@@ -6,8 +6,7 @@
 import io
 import ipaddress
 import json
-import kx.configuration.cluster
-import kx.configuration.project
+import kx.configuration
 import kx.ignition.fcc
 import kx.ignition.transpilation
 import kx.infrastructure
@@ -41,12 +40,8 @@ class Vagrant(
     kx.ignition.fcc.FedoraCoreOSConfigurationProvider,
 ):
     def __init__(
-        self,
-        *,
-        project_configuration: kx.configuration.project.ProjectConfiguration,
-        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
+        self, *, cluster_configuration: kx.configuration.ClusterConfiguration,
     ):
-        self.__project_configuration = project_configuration
         self.__cluster_configuration = cluster_configuration
 
     def prepare_provider(self) -> None:
@@ -59,11 +54,11 @@ class Vagrant(
         assert box_directory_path.is_dir()
 
         box_file_path = box_directory_path.joinpath(
-            f"fedora-coreos-{self.__project_configuration.operating_system_version}.tar.gz"
+            f"fedora-coreos-{self.__cluster_configuration.operating_system_version}.tar.gz"
         )
         if not box_file_path.exists():
             # Download the Fedora CoreOS QEMU image
-            download_url = f"https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/{self.__project_configuration.operating_system_version}/x86_64/fedora-coreos-{self.__project_configuration.operating_system_version}-qemu.x86_64.qcow2.xz"
+            download_url = f"https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/{self.__cluster_configuration.operating_system_version}/x86_64/fedora-coreos-{self.__cluster_configuration.operating_system_version}-qemu.x86_64.qcow2.xz"
             logger.info(f"Downloading {download_url}...")
             response = requests.get(download_url)
             response.raise_for_status()

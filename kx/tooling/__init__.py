@@ -4,7 +4,7 @@
 # the project.
 
 import dataclasses
-import kx.configuration.project
+import kx.configuration
 import kx.logging
 import kx.utility
 import requests
@@ -28,7 +28,7 @@ class Tool:
 
 
 def _tools_registry(
-    *, project_configuration: kx.configuration.project.ProjectConfiguration
+    *, cluster_configuration: kx.configuration.ClusterConfiguration
 ) -> typing.Tuple[Tool, ...]:
     return (
         Tool(
@@ -39,15 +39,15 @@ def _tools_registry(
         Tool(
             filename="kubectl",
             homepage="https://kubernetes.io/docs/reference/kubectl/overview/",
-            download_url=f"https://storage.googleapis.com/kubernetes-release/release/v{project_configuration.kubernetes_version}/bin/linux/amd64/kubectl",
+            download_url=f"https://storage.googleapis.com/kubernetes-release/release/v{cluster_configuration.kubernetes_version}/bin/linux/amd64/kubectl",
         ),
     )
 
 
 def install_tooling(
-    *, project_configuration: kx.configuration.project.ProjectConfiguration
+    *, cluster_configuration: kx.configuration.ClusterConfiguration
 ) -> None:
-    for tool in _tools_registry(project_configuration=project_configuration):
+    for tool in _tools_registry(cluster_configuration=cluster_configuration):
         if not tool.path.exists():
             logger.info(f"Downloading {tool.path}...")
             response = requests.get(tool.download_url)
@@ -59,9 +59,9 @@ def install_tooling(
 
 
 def uninstall_tooling(
-    *, project_configuration: kx.configuration.project.ProjectConfiguration
+    *, cluster_configuration: kx.configuration.ClusterConfiguration
 ) -> None:
-    for tool in _tools_registry(project_configuration=project_configuration):
+    for tool in _tools_registry(cluster_configuration=cluster_configuration):
         if tool.path.exists():
             logger.info(f"Uninstalling {tool.path}...")
             tool.path.unlink()

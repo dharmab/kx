@@ -6,8 +6,7 @@
 import argparse
 import enum
 import json
-import kx.configuration.cluster
-import kx.configuration.project
+import kx.configuration
 import kx.ignition.fcc
 import kx.logging
 import kx.tooling
@@ -68,8 +67,6 @@ def _parse_arguments() -> argparse.Namespace:
 def main() -> None:
     arguments = _parse_arguments()
 
-    project_configuration = kx.configuration.project.ProjectConfiguration()
-
     configuration_path = os.getenv("CLUSTER_CONFIG")
     if not configuration_path:
         logger.error("CLUSTER_CONFIG not defined")
@@ -77,25 +74,21 @@ def main() -> None:
 
     logger.info(f"Loading configuration from {configuration_path}...")
     with open(configuration_path) as f:
-        cluster_configuration = kx.configuration.cluster.load_cluster_configuration(f)
+        cluster_configuration = kx.configuration.load_cluster_configuration(f)
 
     universal_ignition_provider = kx.ignition.fcc.UniversalFCCProvider(
         cluster_configuration=cluster_configuration,
-        project_configuration=project_configuration,
     )
 
     provider: kx.infrastructure.InfrastructureProvider
     if cluster_configuration.provider == "Vagrant":
         from kx.vagrant.provider import Vagrant
 
-        provider = Vagrant(
-            project_configuration=project_configuration,
-            cluster_configuration=cluster_configuration,
-        )
+        provider = Vagrant(cluster_configuration=cluster_configuration,)
 
     if arguments.action == Action.INSTALL_TOOLING:
         logger.info(f"Installing tools...")
-        kx.tooling.install_tooling(project_configuration=project_configuration)
+        kx.tooling.install_tooling(cluster_configuration=cluster_configuration)
     elif arguments.action == Action.PREPARE_PROVIDER:
         logger.info(f"Preparing {cluster_configuration.provider} provider...")
         provider.prepare_provider()
@@ -124,7 +117,6 @@ def main() -> None:
         logger.info("Generating Ignition data...")
         universal_fcc_provider = kx.ignition.fcc.UniversalFCCProvider(
             cluster_configuration=cluster_configuration,
-            project_configuration=project_configuration,
         )
         unstable_fcc_provider = kx.ignition.fcc.UnstableFCCProvider(
             tls_pki_catalog=tls_pki_catalog
@@ -221,7 +213,7 @@ def main() -> None:
         provider.clean_provider()
     elif arguments.action == Action.UNINSTALL_TOOLING:
         logger.info(f"Deleting tools...")
-        kx.tooling.uninstall_tooling(project_configuration=project_configuration)
+        kx.tooling.uninstall_tooling(cluster_configuration=cluster_configuration)
     else:
         logger.error(f"{arguments.action} is not a valid command")
         sys.exit(1)

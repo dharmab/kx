@@ -5,7 +5,7 @@
 import cryptography.x509
 import dataclasses
 import ipaddress
-import kx.configuration.cluster
+import kx.configuration
 import kx.tls.crypto
 import typing
 import yarl

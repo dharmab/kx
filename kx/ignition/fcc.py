@@ -2,8 +2,7 @@
 
 import abc
 import jinja2
-import kx.configuration.cluster
-import kx.configuration.project
+import kx.configuration
 import kx.tls.pki
 import kx.utility
 import yaml
@@ -41,15 +40,9 @@ def content_from_lines(*args) -> str:
 
 
 def template_content(
-    content,
-    *,
-    cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
-    project_configuration: kx.configuration.project.ProjectConfiguration,
+    content, *, cluster_configuration: kx.configuration.ClusterConfiguration,
 ) -> str:
-    return jinja2.Template(content).render(
-        cluster_configuration=cluster_configuration,
-        project_configuration=project_configuration,
-    )
+    return jinja2.Template(content).render(cluster_configuration=cluster_configuration,)
 
 
 class FedoraCoreOSConfigurationProvider(abc.ABC):
@@ -68,13 +61,9 @@ class FedoraCoreOSConfigurationProvider(abc.ABC):
 
 class UniversalFCCProvider(FedoraCoreOSConfigurationProvider):
     def __init__(
-        self,
-        *,
-        cluster_configuration: kx.configuration.cluster.ClusterConfiguration,
-        project_configuration: kx.configuration.project.ProjectConfiguration,
+        self, *, cluster_configuration: kx.configuration.ClusterConfiguration,
     ):
         self.__cluster_configuration = cluster_configuration
-        self.__project_configuration = project_configuration
 
     @staticmethod
     def kubelet_configuration() -> dict:
@@ -122,7 +111,7 @@ class UniversalFCCProvider(FedoraCoreOSConfigurationProvider):
                         file_from_url(
                             "/opt/kubernetes/bin/kubelet",
                             url=yarl.URL(
-                                f"https://storage.googleapis.com/kubernetes-release/release/v{self.__project_configuration.kubernetes_version}/bin/linux/amd64/kubelet"
+                                f"https://storage.googleapis.com/kubernetes-release/release/v{self.__cluster_configuration.kubernetes_version}/bin/linux/amd64/kubelet"
                             ),
                             mode=0o755,
                         ),
