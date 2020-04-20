@@ -16,14 +16,18 @@ class ClusterConfiguration:
     provider: typing.Literal["Vagrant"]
     # Version of Fedora CoreOS
     operating_system_version = "31.20200323.3.2"
+    # Version of etcd
+    etcd_version = "3.4.7"
     # Version of Kubernetes
-    kubernetes_version = "1.18.1"
+    kubernetes_version = "1.18.2"
     # Version of CNI plugins
     cni_plugins_version = "0.8.5"
     # List of SSH public keys which will be authorized for the user named "core"
     ssh_keys: typing.List[str]
     # Password used to encrypt the cluster's TLS PKI keys at rest
     cluster_tls_pki_encryption_key: str
+    # etcd public discovery URL for the cluster
+    etcd_discovery_url: str
 
 
 def load_cluster_configuration(f: typing.IO) -> ClusterConfiguration:
