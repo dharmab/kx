@@ -101,20 +101,6 @@ class InfrastructureProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def upload_tls_certificates(
-        self,
-        *,
-        etcd_pki: kx.tls.pki.EtcdPublicKeyInfrastructure,
-        kubernetes_pki: kx.tls.pki.KubernetesPublicKeyInfrastructure
-    ) -> kx.tls.pki.PublicKeyInfrastructureCatalog:
-        """
-        Upload the given PKI objects to a blob storage provider. Return a
-        catalog of URLs from which the certificates and keys may be downloaded.
-        The catalog should contain only secure URLs, e.g. signed URLs.
-        """
-        pass
-
-    @abc.abstractmethod
     def upload_ignition_data(
         self,
         *,

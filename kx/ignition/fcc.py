@@ -184,17 +184,21 @@ class UniversalFCCProvider(FedoraCoreOSConfigurationProvider):
 
 class UnstableFCCProvider(FedoraCoreOSConfigurationProvider):
     def __init__(
-        self, *, tls_pki_catalog: kx.tls.pki.PublicKeyInfrastructureCatalog,
+        self,
+        *,
+        kubernetes_pki: kx.tls.pki.KubernetesPublicKeyInfrastructure,
+        etcd_pki: kx.tls.pki.EtcdPublicKeyInfrastructure,
     ):
-        self.__url_catalog = tls_pki_catalog
+        self.__kubernetes_pki = kubernetes_pki
+        self.__etcd_pki = etcd_pki
 
     def __generate_base_configuration(self) -> dict:
         return {
             "storage": {
                 "files": [
-                    file_from_url(
+                    file_from_content(
                         "/etc/kubernetes/tls/kubernetes_ca.pem",
-                        self.__url_catalog.kubernetes_certificate_authority,
+                        contents=self.__kubernetes_pki.certificate_authority.public_key,
                     ),
                 ]
             }
@@ -206,27 +210,27 @@ class UnstableFCCProvider(FedoraCoreOSConfigurationProvider):
             {
                 "storage": {
                     "files": [
-                        file_from_url(
+                        file_from_content(
                             "/etc/etcd/tls/etcd_ca.pem",
-                            self.__url_catalog.etcd_certificate_authority,
+                            contents=self.__etcd_pki.certificate_authority.public_key,
                         ),
-                        file_from_url(
+                        file_from_content(
                             "/etc/etcd/tls/etcd_peer.key",
-                            self.__url_catalog.etcd_server_private_key,
+                            contents=self.__etcd_pki.certificate_authority.private_key,
                             mode=0o600,
                         ),
-                        file_from_url(
+                        file_from_content(
                             "/etc/etcd/tls/etcd_peer.pem",
-                            self.__url_catalog.etcd_peer_certificate,
+                            contents=self.__etcd_pki.etcd_peer_keypair.public_key,
                         ),
-                        file_from_url(
+                        file_from_content(
                             "/etc/etcd/tls/etcd_server.key",
-                            self.__url_catalog.etcd_server_private_key,
+                            contents=self.__etcd_pki.etcd_server_keypair.private_key,
                             mode=0o600,
                         ),
-                        file_from_url(
+                        file_from_content(
                             "/etc/etcd/tls/etcd_server.pem",
-                            self.__url_catalog.etcd_server_certificate,
+                            contents=self.__etcd_pki.etcd_server_keypair.public_key,
                         ),
                     ]
                 }
@@ -236,6 +240,52 @@ class UnstableFCCProvider(FedoraCoreOSConfigurationProvider):
     def generate_master_configuration(self) -> dict:
         return kx.utility.merge_complex_dictionaries(
             self.__generate_base_configuration(),
+            {
+                "storage": {
+                    "files": [
+                        file_from_content(
+                            "/etc/etcd/tls/etcd_ca.pem",
+                            contents=self.__etcd_pki.certificate_authority.public_key,
+                        ),
+                        file_from_content(
+                            "/etc/etcd/tls/kube_apiserver.key",
+                            contents=self.__etcd_pki.etcd_apiserver_client_keypair.private_key,
+                            mode=0o600,
+                        ),
+                        file_from_content(
+                            "/etc/etcd/tls/kube_apiserver.pem",
+                            contents=self.__etcd_pki.etcd_apiserver_client_keypair.public_key,
+                        ),
+                        file_from_content(
+                            "/etc/kubernetes/tls/kube_apiserver.key",
+                            contents=self.__kubernetes_pki.apiserver_keypair.private_key,
+                            mode=0o600,
+                        ),
+                        file_from_content(
+                            "/etc/kubernetes/tls/kube_apiserver.pem",
+                            contents=self.__kubernetes_pki.apiserver_keypair.public_key,
+                        ),
+                        file_from_content(
+                            "/etc/kubernetes/tls/kube_scheduler.key",
+                            contents=self.__kubernetes_pki.scheduler_keypair.private_key,
+                            mode=0o600,
+                        ),
+                        file_from_content(
+                            "/etc/kubernetes/tls/kube_scheduler.pem",
+                            contents=self.__kubernetes_pki.scheduler_keypair.public_key,
+                        ),
+                        file_from_content(
+                            "/etc/kubernetes/tls/kube_controller_manager.key",
+                            contents=self.__kubernetes_pki.controller_manager_keypair.private_key,
+                            mode=0o600,
+                        ),
+                        file_from_content(
+                            "/etc/kubernetes/tls/kube_controller_manager.pem",
+                            contents=self.__kubernetes_pki.controller_manager_keypair.public_key,
+                        ),
+                    ]
+                }
+            },
         )
 
     def generate_worker_configuration(self, *, pool_name: str) -> dict:

@@ -101,8 +101,11 @@ def main() -> None:
         logger.info("Creating network infrastructure...")
         provider.create_network_resources()
 
-        logger.info(f"Uploading TLS public key infrastructure...")
-        tls_pki_catalog = provider.upload_tls_certificates(
+        logger.info("Generating Ignition data...")
+        universal_fcc_provider = kx.ignition.fcc.UniversalFCCProvider(
+            cluster_configuration=cluster_configuration,
+        )
+        unstable_fcc_provider = kx.ignition.fcc.UnstableFCCProvider(
             etcd_pki=kx.tls.pki.create_etcd_pki(
                 etcd_peer_ip_addresses=provider.query_etcd_peer_names(),
                 etcd_server_ip_addresses=provider.query_etcd_server_names(),
@@ -112,14 +115,6 @@ def main() -> None:
                 apiserver_names=provider.query_apiserver_names(),
                 encryption_key=cluster_configuration.cluster_tls_pki_encryption_key,
             ),
-        )
-
-        logger.info("Generating Ignition data...")
-        universal_fcc_provider = kx.ignition.fcc.UniversalFCCProvider(
-            cluster_configuration=cluster_configuration,
-        )
-        unstable_fcc_provider = kx.ignition.fcc.UnstableFCCProvider(
-            tls_pki_catalog=tls_pki_catalog
         )
 
         stable_etcd_ignition_data = kx.utility.merge_complex_dictionaries(
