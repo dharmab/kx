@@ -18,6 +18,8 @@ class ClusterConfiguration:
     operating_system_version = "31.20200323.3.2"
     # Version of Kubernetes
     kubernetes_version = "1.18.1"
+    # Version of CNI plugins
+    cni_plugins_version = "0.8.5"
     # List of SSH public keys which will be authorized for the user named "core"
     ssh_keys: typing.List[str]
     # Password used to encrypt the cluster's TLS PKI keys at rest

@@ -1,18 +1,20 @@
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/
-After=network.target
+After=docker.service
+Requests=docker.service
 
 [Service]
-Type=simple
+Delegate=true
 CPUAccounting=true
 MemoryAccounting=true
+ExecStartPre=/usr/bin/tar xf /opt/cni/bin/cni-plugins.tar.gz -C /opt/cni/bin
 ExecStart=/opt/kubernetes/bin/kubelet \
+  --cert-dir=/etc/kubernetes/tls \
   --config=/etc/kubernetes/kubelet.yaml \
   --container-runtime=docker \
-  --network-plugin=cni \
-  --v=2
-Restart=always
+  --network-plugin=cni
+Restart=on-failure
 RestartSec=5
 
 [Install]

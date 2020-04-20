@@ -229,6 +229,7 @@ class Vagrant(
                 "users": [
                     {
                         "name": "vagrant",
+                        "password_hash": "$6$kqoYRecbu/Sz.fo1$k6IFJe9XPeK2USk4ohDAKyMT.Z9FHHNa08OiV/t8KCnXjpOV3wP4LPg4vtLzbsCi/6dk/.7Pqmb1EovALfXba0",  # "vagrant"
                         "ssh_authorized_keys": [
                             "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
                         ],
@@ -249,7 +250,7 @@ class Vagrant(
 
     def __generate_load_balancer_configuration(self) -> dict:
         return kx.utility.merge_complex_dictionaries(
-            self.generate_worker_configuration(pool_name="worker"),
+            self.__generate_base_fcc_configuration(),
             {
                 "systemd": {
                     "units": [
@@ -257,7 +258,7 @@ class Vagrant(
                             "name": "nginx.service",
                             "enabled": True,
                             "contents": kx.ignition.fcc.content_from_repository(
-                                "systemd/vagrant/nginx-l4.service"
+                                "systemd/vagrant/nginx.service"
                             ),
                         }
                     ]
@@ -265,9 +266,15 @@ class Vagrant(
                 "storage": {
                     "files": [
                         kx.ignition.fcc.file_from_content(
+                            "/etc/selinux/config",
+                            kx.ignition.fcc.content_from_lines(
+                                "SELINUX=disabled", "SELINUXTYPE=targeted"
+                            ),
+                        ),
+                        kx.ignition.fcc.file_from_content(
                             "/etc/nginx/nginx.conf",
                             contents=kx.ignition.fcc.content_from_repository(
-                                "files/vagrant/nginx-l4.conf"
+                                "files/vagrant/nginx.conf"
                             ),
                         ),
                     ]

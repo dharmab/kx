@@ -2,6 +2,7 @@
 
 import abc
 import jinja2
+import json
 import kx.configuration
 import kx.tls.pki
 import kx.utility
@@ -68,15 +69,20 @@ class UniversalFCCProvider(FedoraCoreOSConfigurationProvider):
     @staticmethod
     def kubelet_configuration() -> dict:
         # https://kubernetes.io/docs/tasks/administer-cluster/kubelet-config-file/
+        # https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/config/v1beta1/types.go
         return {
             "apiVersion": "kubelet.config.k8s.io/v1beta1",
             "kind": "KubeletConfiguration",
-            "kubeletCgroups": "systemd",
-            "systemCgroups": "systemd",
-            "staticPodPath": "/etc/kubernetes/static_pods/",
-            # TODO use webhook mode after bootstrapping TLS PKI
-            "authentication": {"anonymous": {"enabled": True}},
+            "authentication": {
+                "anonymous": {"enabled": True},
+                # TODO use webhook mode after bootstrapping TLS PKI
+                "webhook": {"enabled": False},
+            },
             "authorization": {"mode": "AlwaysAllow"},
+            # Match Kubelet's cgroup to Docker's (which is systemd for reasons
+            # described in docker.service)
+            "cgroupDriver": "systemd",
+            "staticPodPath": "/etc/kubernetes/pods/",
         }
 
     def __generate_base_configuration(self) -> dict:
@@ -95,16 +101,17 @@ class UniversalFCCProvider(FedoraCoreOSConfigurationProvider):
                 },
                 "storage": {
                     "directories": [
-                        {"path": "/opt/kx/bin"},
-                        {"path": "/opt/kubernetes/bin"},
+                        {"path": "/etc/kubernetes/pods"},
                         {"path": "/etc/kubernetes/tls"},
+                        {"path": "/opt/kubernetes/bin"},
+                        {"path": "/opt/kx/bin"},
                     ],
                     "files": [
                         # Disable SELinux, since it breaks Pod volumes
                         file_from_content(
                             "/etc/selinux/config",
                             content_from_lines(
-                                "SELINUX=permissive", "SELINUXTYPE=targeted"
+                                "SELINUX=disabled", "SELINUXTYPE=targeted"
                             ),
                         ),
                         # Kubernetes Kubelet
@@ -119,6 +126,13 @@ class UniversalFCCProvider(FedoraCoreOSConfigurationProvider):
                             "/etc/kubernetes/kubelet.yaml",
                             yaml.dump(UniversalFCCProvider.kubelet_configuration()),
                             mode=0o600,
+                        ),
+                        file_from_url(
+                            "/opt/cni/bin/cni-plugins.tar.gz",
+                            url=yarl.URL(
+                                f"https://github.com/containernetworking/plugins/releases/download/v0.8.5/cni-plugins-linux-amd64-v{self.__cluster_configuration.cni_plugins_version}.tgz"
+                            ),
+                            mode=0o755,
                         ),
                     ],
                 },

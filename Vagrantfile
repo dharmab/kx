@@ -40,7 +40,6 @@ Vagrant.configure('2') do |config|
   for i in 0..2
     config.vm.define "master-#{i}" do |master|
       master.vm.network "private_network", ip: "10.13.13.#{6+i}"
-      master.vm.synced_folder '.', '/home/vagrant/kx'
       master.vm.provider :libvirt do |libvirt|
         libvirt.cpus = 1
         libvirt.memory = 1024

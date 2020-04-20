@@ -4,6 +4,7 @@
 
 import logging
 import sys
+import time
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -16,6 +17,7 @@ def get_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
     handler = logging.StreamHandler(sys.stdout)
+    logging.Formatter.converter = time.gmtime
     formatter = logging.Formatter(
         "%(asctime)s.%(msecs)03d %(levelname)s %(filename)s:%(lineno)d %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S",

@@ -1,7 +1,7 @@
 [Unit]
 Description=HTTP and reverse proxy server
 Documentation=https://nginx.org/en/docs/
-After=network.target docker.service
+After=docker.service
 Requires=docker.service
 
 [Service]
@@ -10,14 +10,13 @@ ExecStartPre=-/usr/bin/docker rm nginx
 ExecStartPre=/usr/bin/docker pull nginx
 ExecStart=/usr/bin/docker run \
   --name nginx \
-  --network=host \
-  -v /etc/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
-  -v /vagrant:/vagrant:ro \
+  --network host \
+  --mount type=bind,source=/etc/nginx/nginx.conf,target=/etc/nginx/nginx.conf,readonly \
   --rm \
-  nginx \
+  nginx
 TimeoutStartSec=infinity
 Restart=always
-RestartSec=0
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
