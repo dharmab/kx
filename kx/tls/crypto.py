@@ -200,24 +200,12 @@ def generate_keypair(
     )
 
 
-def serialize_keypair(
-    keypair: Keypair, encryption_key: typing.Optional[str]
-) -> SerializedKeypair:
-    encryption_algorithm: cryptography.hazmat.primitives.serialization.KeySerializationEncryption
-    if encryption_key is not None:
-        encryption_algorithm = cryptography.hazmat.primitives.serialization.BestAvailableEncryption(
-            encryption_key.encode()
-        )
-    else:
-        encryption_algorithm = (
-            cryptography.hazmat.primitives.serialization.NoEncryption()
-        )
-
+def serialize_keypair(keypair: Keypair) -> SerializedKeypair:
     return SerializedKeypair(
         private_key=keypair.private_key.private_bytes(
             encoding=cryptography.hazmat.primitives.serialization.Encoding.PEM,
             format=cryptography.hazmat.primitives.serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=encryption_algorithm,
+            encryption_algorithm=cryptography.hazmat.primitives.serialization.NoEncryption(),
         ).decode(),
         public_key=keypair.public_key.public_bytes(
             cryptography.hazmat.primitives.serialization.Encoding.PEM

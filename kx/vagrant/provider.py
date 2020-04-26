@@ -148,19 +148,21 @@ class Vagrant(
             logger.info(f"Deleting {file_path}...")
             file_path.unlink()
 
-    def query_etcd_peer_names(
+    def query_etcd_peers(
         self,
-    ) -> typing.List[typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
+    ) -> typing.Dict[str, typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
         # IP addresses are hardcoded in Vagrantfile
-        return [
-            ipaddress.IPv4Address(ip)
-            for ip in ("10.13.13.2", "10.13.13.3", "10.13.13.4")
-        ]
+        return {
+            f"etcd-{i}": ipaddress.IPv4Address(ip)
+            for i, ip in enumerate(("10.13.13.2", "10.13.13.3", "10.13.13.4"))
+        }
 
     def query_etcd_server_names(
         self,
     ) -> typing.List[typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
-        return self.query_etcd_peer_names() + [ipaddress.IPv4Address("10.13.13.5")]
+        return list(self.query_etcd_peers().values()) + [
+            ipaddress.IPv4Address("10.13.13.5")
+        ]
 
     def query_apiserver_names(
         self,

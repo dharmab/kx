@@ -16,6 +16,7 @@ Vagrant.configure('2') do |config|
   config.vm.synced_folder '.', '/vagrant', disabled: true
 
   config.vm.define "load-balancer" do |load_balancer|
+    load_balancer.vm.hostname = "load-balancer"
     load_balancer.vm.network "private_network", ip: "10.13.13.5"
     load_balancer.vm.provider :libvirt do |libvirt|
       libvirt.cpus = 1
@@ -27,6 +28,7 @@ Vagrant.configure('2') do |config|
 
   for i in 0..2
     config.vm.define "etcd-#{i}" do |etcd|
+      etcd.vm.hostname = "etcd-#{i}"
       etcd.vm.network "private_network", ip: "10.13.13.#{2+i}"
       etcd.vm.provider :libvirt do |libvirt|
         libvirt.cpus = 1
@@ -39,6 +41,7 @@ Vagrant.configure('2') do |config|
 
   for i in 0..2
     config.vm.define "master-#{i}" do |master|
+      master.vm.hostname = "master-#{i}"
       master.vm.network "private_network", ip: "10.13.13.#{6+i}"
       master.vm.provider :libvirt do |libvirt|
         libvirt.cpus = 1

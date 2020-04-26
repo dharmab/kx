@@ -25,11 +25,11 @@ def transpile_ignition(fcc: dict) -> dict:
 
 
 def _is_fcc_valid(fcc: dict) -> bool:
-    file_paths = []
+    file_paths = set()
     for _file in fcc.get("storage", {}).get("files", []):
         path = _file["path"]
         if path in file_paths:
             logger.error(f"Found duplicate file path: {path}")
             return False
-        file_paths.append(path)
+        file_paths.add(path)
     return True

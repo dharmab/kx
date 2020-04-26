@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import abc
+import ipaddress
 import jinja2
 import json
 import kx.configuration
+import kx.kubernetes.static_pods
 import kx.tls.pki
 import kx.utility
+import typing
 import yaml
 import yarl
 
@@ -62,9 +65,15 @@ class FedoraCoreOSConfigurationProvider(abc.ABC):
 
 class UniversalFCCProvider(FedoraCoreOSConfigurationProvider):
     def __init__(
-        self, *, cluster_configuration: kx.configuration.ClusterConfiguration,
+        self,
+        *,
+        cluster_configuration: kx.configuration.ClusterConfiguration,
+        etcd_peers: typing.Dict[
+            str, typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
+        ],
     ):
         self.__cluster_configuration = cluster_configuration
+        self.__etcd_peers = etcd_peers
 
     @staticmethod
     def kubelet_configuration() -> dict:
@@ -159,8 +168,19 @@ class UniversalFCCProvider(FedoraCoreOSConfigurationProvider):
                         file_from_content(
                             path="/etc/profile.d/node_role.sh",
                             contents=content_from_lines("NODE_ROLE=etcd"),
-                        )
-                    ]
+                        ),
+                        file_from_content(
+                            path="/etc/kubernetes/pods/etcd.yaml",
+                            contents=yaml.dump(
+                                kx.kubernetes.static_pods.etcd(
+                                    cluster_configuration=self.__cluster_configuration,
+                                    etcd_peers=self.__etcd_peers,
+                                    is_existing_cluster=False,
+                                )
+                            ),
+                        ),
+                    ],
+                    "directories": [{"path": "/var/lib/etcd/data"}],
                 }
             },
         )
@@ -220,7 +240,6 @@ class UnstableFCCProvider(FedoraCoreOSConfigurationProvider):
 
     def generate_etcd_configuration(self) -> dict:
         return kx.utility.merge_complex_dictionaries(
-            self.__generate_base_configuration(),
             {
                 "storage": {
                     "files": [
@@ -230,7 +249,7 @@ class UnstableFCCProvider(FedoraCoreOSConfigurationProvider):
                         ),
                         file_from_content(
                             "/etc/etcd/tls/etcd_peer.key",
-                            contents=self.__etcd_pki.certificate_authority.private_key,
+                            contents=self.__etcd_pki.etcd_peer_keypair.private_key,
                             mode=0o600,
                         ),
                         file_from_content(
@@ -253,7 +272,6 @@ class UnstableFCCProvider(FedoraCoreOSConfigurationProvider):
 
     def generate_master_configuration(self) -> dict:
         return kx.utility.merge_complex_dictionaries(
-            self.__generate_base_configuration(),
             {
                 "storage": {
                     "files": [
@@ -303,6 +321,4 @@ class UnstableFCCProvider(FedoraCoreOSConfigurationProvider):
         )
 
     def generate_worker_configuration(self, *, pool_name: str) -> dict:
-        return kx.utility.merge_complex_dictionaries(
-            self.__generate_base_configuration(),
-        )
+        return {}

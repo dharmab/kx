@@ -24,10 +24,8 @@ class ClusterConfiguration:
     cni_plugins_version = "0.8.5"
     # List of SSH public keys which will be authorized for the user named "core"
     ssh_keys: typing.List[str]
-    # Password used to encrypt the cluster's TLS PKI keys at rest
-    cluster_tls_pki_encryption_key: str
-    # etcd public discovery URL for the cluster
-    etcd_discovery_url: str
+    # etcd initial cluster token
+    etcd_token: str
 
 
 def load_cluster_configuration(f: typing.IO) -> ClusterConfiguration:
@@ -54,7 +52,6 @@ def validate_configuration(configuration: ClusterConfiguration,) -> None:
     validators = [
         validate_provider,
         validate_ssh_keys,
-        validate_cluster_tls_pki_encryption_key,
     ]
 
     for f in validators:
@@ -81,8 +78,6 @@ def validate_ssh_keys(configuration: ClusterConfiguration,) -> None:
     # TODO check that every key looks like a public key
 
 
-def validate_cluster_tls_pki_encryption_key(
-    configuration: ClusterConfiguration,
-) -> None:
-    assert configuration.cluster_tls_pki_encryption_key
-    # TODO check if the password is shite
+def validate_etcd_token(configuration: ClusterConfiguration) -> None:
+    assert configuration.etcd_token
+    # TODO check if token is reasonably secure

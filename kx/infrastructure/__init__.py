@@ -69,11 +69,12 @@ class InfrastructureProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def query_etcd_peer_names(
+    def query_etcd_peers(
         self,
-    ) -> typing.List[typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
+    ) -> typing.Dict[str, typing.Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
         """
-        Return a list of all etcd peer IP addresses in the cluster.
+        Return a dict mapping the names of all etcd peers in the cluster to
+        their corresponding etcd peer IP addresses
         """
         pass
 

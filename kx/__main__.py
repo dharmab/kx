@@ -76,10 +76,6 @@ def main() -> None:
     with open(configuration_path) as f:
         cluster_configuration = kx.configuration.load_cluster_configuration(f)
 
-    universal_ignition_provider = kx.ignition.fcc.UniversalFCCProvider(
-        cluster_configuration=cluster_configuration,
-    )
-
     provider: kx.infrastructure.InfrastructureProvider
     if cluster_configuration.provider == "Vagrant":
         from kx.vagrant.provider import Vagrant
@@ -104,21 +100,20 @@ def main() -> None:
         logger.info("Generating Ignition data...")
         universal_fcc_provider = kx.ignition.fcc.UniversalFCCProvider(
             cluster_configuration=cluster_configuration,
+            etcd_peers=provider.query_etcd_peers(),
         )
         unstable_fcc_provider = kx.ignition.fcc.UnstableFCCProvider(
             etcd_pki=kx.tls.pki.create_etcd_pki(
-                etcd_peer_ip_addresses=provider.query_etcd_peer_names(),
+                etcd_peer_ip_addresses=list(provider.query_etcd_peers().values()),
                 etcd_server_ip_addresses=provider.query_etcd_server_names(),
-                encryption_key=cluster_configuration.cluster_tls_pki_encryption_key,
             ),
             kubernetes_pki=kx.tls.pki.create_kubernetes_pki(
                 apiserver_names=provider.query_apiserver_names(),
-                encryption_key=cluster_configuration.cluster_tls_pki_encryption_key,
             ),
         )
 
         stable_etcd_ignition_data = kx.utility.merge_complex_dictionaries(
-            universal_ignition_provider.generate_etcd_configuration(),
+            universal_fcc_provider.generate_etcd_configuration(),
             provider.generate_etcd_configuration(),
         )
         stable_etcd_ignition_hash = kx.utility.sha512_hash(stable_etcd_ignition_data)
@@ -131,7 +126,7 @@ def main() -> None:
         etcd_ignition_verification_hash = kx.utility.sha512_hash(etcd_ignition_data)
 
         stable_master_ignition_data = kx.utility.merge_complex_dictionaries(
-            universal_ignition_provider.generate_master_configuration(),
+            universal_fcc_provider.generate_master_configuration(),
             provider.generate_master_configuration(),
         )
         stable_master_ignition_hash = kx.utility.sha512_hash(
@@ -151,7 +146,7 @@ def main() -> None:
         worker_verification_hashes = {}
         for pool_name in worker_pool_names:
             stable_worker_ignition_data = kx.utility.merge_complex_dictionaries(
-                universal_ignition_provider.generate_worker_configuration(
+                unstable_fcc_provider.generate_worker_configuration(
                     pool_name=pool_name
                 ),
                 provider.generate_worker_configuration(pool_name=pool_name),
