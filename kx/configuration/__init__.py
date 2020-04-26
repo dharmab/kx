@@ -15,7 +15,7 @@ class ClusterConfiguration:
     # Name of the infrastructure provider
     provider: typing.Literal["Vagrant"]
     # Version of Fedora CoreOS
-    operating_system_version = "31.20200323.3.2"
+    operating_system_version = "31.20200407.3.0"
     # Version of etcd
     etcd_version = "3.4.7"
     # Version of Kubernetes

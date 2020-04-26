@@ -116,6 +116,12 @@ class UniversalFCCProvider(FedoraCoreOSConfigurationProvider):
                         {"path": "/opt/kx/bin"},
                     ],
                     "files": [
+                        file_from_content(
+                            path="/etc/profile.d/cloud_provider.sh",
+                            contents=content_from_lines(
+                                f"CLOUD_PROVIDER={self.__cluster_configuration.provider}"
+                            ),
+                        ),
                         # Disable SELinux, since it breaks Pod volumes
                         file_from_content(
                             "/etc/selinux/config",
@@ -142,6 +148,13 @@ class UniversalFCCProvider(FedoraCoreOSConfigurationProvider):
                                 f"https://github.com/containernetworking/plugins/releases/download/v0.8.5/cni-plugins-linux-amd64-v{self.__cluster_configuration.cni_plugins_version}.tgz"
                             ),
                             mode=0o755,
+                        ),
+                        file_from_content(
+                            "/opt/kx/bin/kubelet-wrapper",
+                            contents=content_from_repository(
+                                "files/scripts/kubelet-wrapper.sh"
+                            ),
+                            mode=0o744,
                         ),
                     ],
                 },

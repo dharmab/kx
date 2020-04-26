@@ -8,12 +8,7 @@ Requests=docker.service
 Delegate=true
 CPUAccounting=true
 MemoryAccounting=true
-ExecStartPre=/usr/bin/tar xf /opt/cni/bin/cni-plugins.tar.gz -C /opt/cni/bin
-ExecStart=/opt/kubernetes/bin/kubelet \
-  --cert-dir=/etc/kubernetes/tls \
-  --config=/etc/kubernetes/kubelet.yaml \
-  --container-runtime=docker \
-  --network-plugin=cni
+ExecStart=/opt/kx/bin/kubelet-wrapper
 Restart=on-failure
 RestartSec=5
 
